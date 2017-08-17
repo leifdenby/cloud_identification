@@ -135,6 +135,33 @@ void quick_sort(blitz::Array<int, 2> &a, int l, int r)
   }
 }
 
+/** halo swap to get "inner domain values" into halos
+ */
+template <typename Type>
+void halo_swap(blitz::Array<Type,3> &field) {
+  for (int i=0; i<imax; ++i) {
+    for (int k=0; k<kmax; ++k) {
+      if(field(i,jmax-2,k)==true) {
+        field(i,0,k)=field(i,jmax-2,k);
+      }
+      if(field(i,1,k)==true) {
+        field(i,jmax-1,k)=field(i,1,k);
+      }
+    }
+  }
+
+  for (int j=0; j<jmax; ++j) {
+    for (int k=0; k<kmax; ++k) {
+      if(field(imax-2,j,k)==true) {
+        field(0,j,k)=field(imax-2,j,k);
+      }
+      if(field(1,j,k)==true) {
+        field(imax-1,j,k)=field(1,j,k);
+      }
+    }
+  }
+}
+
 int write_netcdf(blitz::Array<indexint,3> dataext) {
     int retval; // error terurn value
     int ncid; //netcdf ids (decided not to reuse these)
@@ -252,321 +279,237 @@ void load_field(blitz::Array<short,3> &fieldext) {
 }
 
 
-int process(
+/** detection of steepest gradient direction in inner domain
+ * 0 corresponds to local maxima
+ */
+void identify_steepest_ascent(
+  blitz::Array<bool, 3> &maskext,
+  blitz::Array<short,3> &fieldext,
+  blitz::Array<char, 3> direction
+  ) {
+
+  char tempdirection; // direction of steepest ascent temp-vars are used in inner loops
+  int tempmax,tempfield; // used in inner loop
+
+  // the sum of directions can be used to do checks on a 
+  // domain that repeats itself in the horizontal directions
+  int sumdir; 
+  sumdir=0;
+
+  for (int i=1; i<imax-1; ++i) {
+    for (int j=1; j<jmax-1; ++j) {
+      for (int k=0; k<kmax; ++k) {
+        if(maskext(i,j,k)==true) {
+          tempdirection=0;
+          tempmax=fieldext(i,j,k);
+          if(maskext(i-1,j,k)==true) {
+            tempfield=fieldext(i-1,j,k);   
+            if(tempfield>tempmax) {
+              tempdirection=1;
+              tempmax=tempfield;
+            }
+          }
+          if(maskext(i,j-1,k)==true) {
+            tempfield=fieldext(i,j-1,k);   
+            if(tempfield>tempmax) {
+              tempdirection=2;
+              tempmax=tempfield;
+            }
+          }
+          if(k>0){
+            if(maskext(i,j,k-1)==true) {
+              tempfield=fieldext(i,j,k-1);   
+              if(tempfield>tempmax) {
+                tempdirection=3;
+                tempmax=tempfield;
+              }
+            }
+          }
+          if(maskext(i+1,j,k)==true) {
+            tempfield=fieldext(i+1,j,k);   
+            if(tempfield>tempmax) {
+              tempdirection=4;
+              tempmax=tempfield;
+            }
+          }  
+          if(maskext(i,j+1,k)==true) {
+            tempfield=fieldext(i,j+1,k);   
+            if(tempfield>tempmax) {
+              tempdirection=5;
+              tempmax=tempfield;
+            }
+          }
+          if(k<kmax-1){   
+            if(maskext(i,j,k+1)==true) {
+              tempfield=fieldext(i,j,k+1);   
+              if(tempfield>tempmax) {
+                tempdirection=6;
+                tempmax=tempfield;
+              }
+            }
+          }                             
+          direction(i,j,k)=tempdirection;
+          sumdir=sumdir+tempdirection;
+        }
+      }
+    }
+  }
+  printf("sum of directions %d \n",sumdir);
+}
+
+
+/* assign points to local maximum   
+ * order: inner domain forward sweep, halo update, inner domain reverse sweep, haloupdate
+ */
+void assign_to_local_maxima(
   blitz::Array<bool,    3> &maskext,
-  blitz::Array<short,   3> &fieldext,
+  blitz::Array<indexint,3> &dataext,
+  blitz::Array<char,3> direction
+) {
+  int itarget,jtarget,ktarget; //calculating back target i,j,k,l that corresponds to maxima
+  char tempdirection; // direction of steepest ascent temp-vars are used in inner loops
+
+  indexint tempdata; // used in inner loop
+  bool moreswaps; // used to check if all identities have been assigned, or further checking necessary
+
+  // forward sweep
+  moreswaps=true; 
+  while(moreswaps==true) {
+    moreswaps=false; //reset swap
+
+    for (int i=1; i<imax-1; ++i) {
+      for (int j=1; j<jmax-1; ++j) {
+        for (int k=0; k<kmax; ++k) {
+          if(maskext(i,j,k)==true) {
+            tempdirection=direction(i,j,k);
+            if(tempdirection>0 and tempdirection<4) {
+              if(tempdirection==1) {
+                if(dataext(i,j,k)!=dataext(i-1,j,k)) {   
+                  dataext(i,j,k)=dataext(i-1,j,k);
+                  moreswaps=true;
+                }
+              }
+              else if(tempdirection==2) {
+                if(dataext(i,j,k)!=dataext(i,j-1,k)) {   
+                  dataext(i,j,k)=dataext(i,j-1,k);
+                  moreswaps=true;
+                }
+              }
+              else if(tempdirection==3) {
+                if(dataext(i,j,k)!=dataext(i,j,k-1)) {   
+                  dataext(i,j,k)=dataext(i,j,k-1);
+                  moreswaps=true;
+                }
+              }        
+            }        
+          }
+        }
+      }
+    }    
+
+    // halo update
+    if(lperiodic==true) {
+      halo_swap<indexint>(dataext);
+    }
+
+    // reverse sweep
+    for (int i=imax-2; i>= 1; --i) {
+      for (int j=jmax-2; j>= 1; --j) {
+        for (int k=kmax-1; k>= 0; --k) {
+          if(maskext(i,j,k)==true) {
+            tempdirection=direction(i,j,k);
+            if(tempdirection>3) {
+              if(tempdirection==4) {
+                if(dataext(i,j,k)!=dataext(i+1,j,k)) {   
+                  dataext(i,j,k)=dataext(i+1,j,k);
+                  moreswaps=true;
+                }
+              }
+              else if(tempdirection==5) {
+                if(dataext(i,j,k)!=dataext(i,j+1,k)) {   
+                  dataext(i,j,k)=dataext(i,j+1,k);
+                  moreswaps=true;
+                }
+              }
+              else if(tempdirection==6) {
+                if(dataext(i,j,k)!=dataext(i,j,k+1)) {  
+                  dataext(i,j,k)=dataext(i,j,k+1);
+                  moreswaps=true;
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+
+    // halo update
+    if(lperiodic==true) {
+      halo_swap<indexint>(dataext);
+    }
+  }
+
+  // renumber the cells (remember halo behavior)
+  // do not assign zero
+  int cloudcounter;
+  cloudcounter=1;
+  for (int i=1; i<imax-1; ++i) {
+    for (int j=1; j<jmax-1; ++j) {
+      for (int k=0; k<kmax; ++k) {
+        if(maskext(i,j,k)==true) {
+          if(dataext(i,j,k)==i*jmax*kmax+j*kmax+k){
+            dataext(i,j,k)=cloudcounter;
+            cloudcounter=cloudcounter+1;
+            maskext(i,j,k)=false;
+          }
+        }
+      }
+    }
+  }
+
+  printf("cloudcounter +1 %d \n",cloudcounter);
+
+  // assign identity of maximum to each "cloudy" cell
+  for (int i=1; i<imax-1; ++i) {
+    for (int j=1; j<jmax-1; ++j) {
+      for (int k=0; k<kmax; ++k) {
+        if(maskext(i,j,k)==true) {
+          tempdata=dataext(i,j,k);
+          if(tempdata>0){
+            itarget=int(tempdata/(jmax*kmax));
+            jtarget=int((tempdata-itarget*jmax*kmax)/kmax);
+            ktarget=tempdata-itarget*jmax*kmax-jtarget*kmax;
+            dataext(i,j,k)=dataext(itarget,jtarget,ktarget);
+          }
+        }
+      }
+    }
+  }
+
+  // halo swap to get "inner domains" at halos
+  if(lperiodic==true) {
+    halo_swap(dataext);
+  }
+}
+
+void init_output(
+  blitz::Array<bool,    3> &maskext,
   blitz::Array<indexint,3> &dataext
 ) {
-    int itarget,jtarget,ktarget; //calculating back target i,j,k,l that corresponds to maxima
+  dataext=0;
 
-    char tempdirection; // direction of steepest ascent temp-vars are used in inner loops
-    indexint tempdata; // used in inner loop
-    int tempmax,tempfield; // used in inner loop
-    bool moreswaps; // used to check if all identities have been assigned, or further checking necessary
-
-    // array that holds direction of steepest ascent
-    blitz::Array<char,3> direction(imax,jmax,kmax);
-    direction=0;
-   
-    // first numbering
-    for (int i=1; i<imax-1; ++i) {
+  // initial numbering
+  for (int i=1; i<imax-1; ++i) {
     for (int j=1; j<jmax-1; ++j) {
-    for (int k=0; k<kmax; ++k) {
-      if(maskext(i,j,k)==true) {
-        dataext(i,j,k)=i*jmax*kmax+j*kmax+k;
-      }
-    }
-    }
-    }
-    
-    // halo swap to get "inner domain values" into halos
-    if(lperiodic==true) {
-      for (int i=0; i<imax; ++i) {
-      for (int k=0; k<kmax; ++k) {
-      if(maskext(i,jmax-2,k)==true) {
-        dataext(i,0,k)=dataext(i,jmax-2,k);
-        fieldext(i,0,k)=fieldext(i,jmax-2,k);
-        maskext(i,0,k)=maskext(i,jmax-2,k);
-      }
-      if(maskext(i,1,k)==true) {
-        dataext(i,jmax-1,k)=dataext(i,1,k);
-        fieldext(i,jmax-1,k)=fieldext(i,1,k);
-        maskext(i,jmax-1,k)=maskext(i,1,k);
-      }
-      }
-      }
-
-      for (int j=0; j<jmax; ++j) {
-      for (int k=0; k<kmax; ++k) {
-      if(maskext(imax-2,j,k)==true) {
-        dataext(0,j,k)=dataext(imax-2,j,k);
-        fieldext(0,j,k)=fieldext(imax-2,j,k);
-        maskext(0,j,k)=maskext(imax-2,j,k);
-      }
-      if(maskext(1,j,k)==true) {
-        dataext(imax-1,j,k)=dataext(1,j,k);
-        fieldext(imax-1,j,k)=fieldext(1,j,k);
-        maskext(imax-1,j,k)=maskext(1,j,k);
-      }
-      }
-      }
-    }
-   
-    // the sum of directions can be used to do checks on a 
-    // domain that repeats itself in the horizontal directions
-    int sumdir; 
-    sumdir=0;
-
-    // detection of steepest gradient direction in inner domain
-    // 0 corresponds to local maxima
-    for (int i=1; i<imax-1; ++i) {
-    for (int j=1; j<jmax-1; ++j) {
-    for (int k=0; k<kmax; ++k) {
-      if(maskext(i,j,k)==true) {
-        tempdirection=0;
-        tempmax=fieldext(i,j,k);
-        if(maskext(i-1,j,k)==true) {
-          tempfield=fieldext(i-1,j,k);   
-          if(tempfield>tempmax) {
-            tempdirection=1;
-            tempmax=tempfield;
-          }
-        }
-  if(maskext(i,j-1,k)==true) {
-          tempfield=fieldext(i,j-1,k);   
-          if(tempfield>tempmax) {
-            tempdirection=2;
-            tempmax=tempfield;
-          }
-        }
-  if(k>0){
-          if(maskext(i,j,k-1)==true) {
-            tempfield=fieldext(i,j,k-1);   
-            if(tempfield>tempmax) {
-              tempdirection=3;
-              tempmax=tempfield;
-            }
-          }
-        }
-        if(maskext(i+1,j,k)==true) {
-          tempfield=fieldext(i+1,j,k);   
-          if(tempfield>tempmax) {
-            tempdirection=4;
-            tempmax=tempfield;
-          }
-        }  
-  if(maskext(i,j+1,k)==true) {
-          tempfield=fieldext(i,j+1,k);   
-          if(tempfield>tempmax) {
-            tempdirection=5;
-            tempmax=tempfield;
-          }
-        }
-        if(k<kmax-1){   
-          if(maskext(i,j,k+1)==true) {
-            tempfield=fieldext(i,j,k+1);   
-            if(tempfield>tempmax) {
-              tempdirection=6;
-              tempmax=tempfield;
-            }
-          }
-        }                             
-        direction(i,j,k)=tempdirection;
-        sumdir=sumdir+tempdirection;
-      }
-    }
-    }
-    }
-    printf("sum of directions %d \n",sumdir);
-    fieldext.free();
-    
-    // assign points to local maximum   
-    // order: inner domain forward sweep, halo update, inner domain reverse sweep, haloupdate
-
-    // forward sweep
-    moreswaps=true; 
-    while(moreswaps==true) {
-      moreswaps=false; //reset swap
-
-      for (int i=1; i<imax-1; ++i) {
-      for (int j=1; j<jmax-1; ++j) {
       for (int k=0; k<kmax; ++k) {
         if(maskext(i,j,k)==true) {
-          tempdirection=direction(i,j,k);
-          if(tempdirection>0 and tempdirection<4) {
-            if(tempdirection==1) {
-              if(dataext(i,j,k)!=dataext(i-1,j,k)) {   
-                dataext(i,j,k)=dataext(i-1,j,k);
-                moreswaps=true;
-              }
-            }
-            else if(tempdirection==2) {
-              if(dataext(i,j,k)!=dataext(i,j-1,k)) {   
-                dataext(i,j,k)=dataext(i,j-1,k);
-                moreswaps=true;
-              }
-            }
-            else if(tempdirection==3) {
-              if(dataext(i,j,k)!=dataext(i,j,k-1)) {   
-                dataext(i,j,k)=dataext(i,j,k-1);
-                moreswaps=true;
-              }
-            }        
-          }        
-        }
-      }
-      }
-      }    
-
-      // halo update
-      if(lperiodic==true) {
-      for (int i=0; i<imax; ++i) {
-      for (int k=0; k<kmax; ++k) {
-        if(maskext(i,jmax-2,k)==true) {
-          dataext(i,0,k)=dataext(i,jmax-2,k);
-        }
-        if(maskext(i,1,k)==true) {
-          dataext(i,jmax-1,k)=dataext(i,1,k);
-        }
-      }
-      }
-  
-      for (int j=0; j<jmax; ++j) {
-      for (int k=0; k<kmax; ++k) {
-        if(maskext(imax-2,j,k)==true) {
-          dataext(0,j,k)=dataext(imax-2,j,k);
-        }
-        if(maskext(1,j,k)==true) {
-          dataext(imax-1,j,k)=dataext(1,j,k);
-        }
-      }
-      }
-      }
-      
-      // reverse sweep
-      for (int i=imax-2; i>= 1; --i) {
-      for (int j=jmax-2; j>= 1; --j) {
-      for (int k=kmax-1; k>= 0; --k) {
-        if(maskext(i,j,k)==true) {
-          tempdirection=direction(i,j,k);
-          if(tempdirection>3) {
-            if(tempdirection==4) {
-              if(dataext(i,j,k)!=dataext(i+1,j,k)) {   
-                dataext(i,j,k)=dataext(i+1,j,k);
-                moreswaps=true;
-              }
-            }
-            else if(tempdirection==5) {
-              if(dataext(i,j,k)!=dataext(i,j+1,k)) {   
-                dataext(i,j,k)=dataext(i,j+1,k);
-                moreswaps=true;
-              }
-            }
-            else if(tempdirection==6) {            
-              if(dataext(i,j,k)!=dataext(i,j,k+1)) {   
-                dataext(i,j,k)=dataext(i,j,k+1);
-                moreswaps=true;
-              }
-            }        
-          }        
-        }
-      }
-      }
-      } 
-      
-      // halo update
-      if(lperiodic==true) {
-        for (int i=0; i<imax; ++i) {
-        for (int k=0; k<kmax; ++k) {
-          if(maskext(i,jmax-2,k)==true) {
-            dataext(i,0,k)=dataext(i,jmax-2,k);
-          }
-          if(maskext(i,1,k)==true) {
-            dataext(i,jmax-1,k)=dataext(i,1,k);
-          }
-        }
-        }
-  
-        for (int j=0; j<jmax; ++j) {
-        for (int k=0; k<kmax; ++k) {
-          if(maskext(imax-2,j,k)==true) {
-            dataext(0,j,k)=dataext(imax-2,j,k);
-          }
-          if(maskext(1,j,k)==true) {
-            dataext(imax-1,j,k)=dataext(1,j,k);
-          }
-        }
+          dataext(i,j,k)=i*jmax*kmax+j*kmax+k;
         }
       }
     }
-    
-    // renumber the cells (remember halo behavior)
-    // do not assign zero
-    int cloudcounter;
-    cloudcounter=1;
-    for (int i=1; i<imax-1; ++i) {
-    for (int j=1; j<jmax-1; ++j) {
-    for (int k=0; k<kmax; ++k) {
-      if(maskext(i,j,k)==true) {
-        if(dataext(i,j,k)==i*jmax*kmax+j*kmax+k){
-           dataext(i,j,k)=cloudcounter;
-           cloudcounter=cloudcounter+1;
-           maskext(i,j,k)=false;
-        }
-      }
-    }
-    }
-    }
-    
-    printf("cloudcounter +1 %d \n",cloudcounter);
-
-    // assign identity of maximum to each "cloudy" cell
-    for (int i=1; i<imax-1; ++i) {
-    for (int j=1; j<jmax-1; ++j) {
-    for (int k=0; k<kmax; ++k) {
-      if(maskext(i,j,k)==true) {
-        tempdata=dataext(i,j,k);
-        if(tempdata>0){
-           itarget=int(tempdata/(jmax*kmax));
-           jtarget=int((tempdata-itarget*jmax*kmax)/kmax);
-           ktarget=tempdata-itarget*jmax*kmax-jtarget*kmax;
-           dataext(i,j,k)=dataext(itarget,jtarget,ktarget);
-        }
-      }
-    }
-    }
-    }
-
-    // halo swap to get "inner domains" at halos
-    if(lperiodic==true) {
-      for (int i=0; i<imax; ++i) {
-      for (int k=0; k<kmax; ++k) {
-      if(dataext(i,jmax-2,k)>0) {
-        dataext(i,0,k)=dataext(i,jmax-2,k);
-      }
-      if(dataext(i,1,k)>0) {      
-        dataext(i,jmax-1,k)=dataext(i,1,k);
-      }
-      }
-      }
-     
-      for (int j=0; j<jmax; ++j) {
-      for (int k=0; k<kmax; ++k) {
-      if(dataext(imax-2,j,k)>0) {
-        dataext(0,j,k)=dataext(imax-2,j,k);
-      }
-      if(dataext(1,j,k)>0) {
-        dataext(imax-1,j,k)=dataext(1,j,k);
-      }
-      }
-      }
-    }
-
-    // free up space (masking and direction)
-    direction.free();
-
-    return 0;
+  }
 }
+
 
 
 // MAIN PROGRAM    
@@ -581,11 +524,26 @@ int main() {
 
   // array that hold actual numbers
   blitz::Array<indexint,3> dataext(imax,jmax,kmax);
-  dataext=0;
+  init_output(maskext, dataext);
 
-  process(maskext, fieldext, dataext);
-  maskext.free();
+  if(lperiodic==true) {
+    halo_swap<bool>(maskext);
+    halo_swap<indexint>(dataext);
+    halo_swap<short>(fieldext);
+  }
+
+  // array that holds direction of steepest ascent
+  blitz::Array<char,3> direction(imax,jmax,kmax);
+  direction=0;
+  identify_steepest_ascent(maskext, fieldext, direction);
   fieldext.free();
+
+  assign_to_local_maxima(maskext, dataext, direction);
+  // free up space (masking and direction)
+  direction.free();
+  maskext.free();
+
+
 
   write_netcdf(dataext);
   dataext.free();
@@ -979,16 +937,8 @@ int col_identification(
     // reopen the field data, now memory has become available again
     blitz::Array<short,3> fieldext2(imax,jmax,kmax);
 
-    /* Open the file. NC_NOWRITE tells netCDF we want read-only access
-     * to the file.*/
-    if ((retval = nc_open("mask_field.nc", NC_NOWRITE, &ncid3)))
-       ERR(retval);
+    load_field(fieldext2);
 
-   err=blitzncshort(ncid3,"fieldext",fieldext2);
-
-    /* Close the file, freeing all resources. */
-    if ((retval = nc_close(ncid3)))
-       ERR(retval);
     
     // initialise array which holds data on cols
     // their heights and the associated "clouds"
