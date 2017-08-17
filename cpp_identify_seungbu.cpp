@@ -46,7 +46,7 @@ static const int colfac = 32; // number of cols wrt number of points
 typedef uint32_t indexint; //use unsigned array indices
 
 // fill a blitz array with "short integer" netcdf data
-int blitzncshort(int ncId, const char *nomVariable,
+void blitzncshort(int ncId, const char *nomVariable,
 blitz::Array<short,3> & tab)
 {
   int status, varId, nbDims;
@@ -58,152 +58,212 @@ blitz::Array<short,3> & tab)
   if (status != NC_NOERR)
     std::cout << nomVariable << " is absent" << std::endl ;
   else
-    {
-      status = nc_inq_varndims(ncId, varId, &nbDims);
+  {
+    status = nc_inq_varndims(ncId, varId, &nbDims);
 
-      if(nbDims != 3)
+    if(nbDims != 3)
     {
       fprintf(stderr,"Error in data, the variable %s should have 3 dimensions\n", nomVariable);
       exit(-1);
     }
 
-      dimIds = new int[nbDims*sizeof(*dimIds)];
+    dimIds = new int[nbDims*sizeof(*dimIds)];
 
-      status = nc_inq_vardimid(ncId, varId, dimIds);
+    status = nc_inq_vardimid(ncId, varId, dimIds);
 
-      delete [] dimIds;
+    delete [] dimIds;
 
-      tab.resize(imax, jmax, kmax);
+    tab.resize(imax, jmax, kmax);
 
-      count[0] = imax ; count[1] = jmax; count[2] = kmax;
-      status = nc_get_vara_short(ncId, varId, start, count, tab.data());
-    }
-  return 0;
+    count[0] = imax ; count[1] = jmax; count[2] = kmax;
+    status = nc_get_vara_short(ncId, varId, start, count, tab.data());
+  }
 }
 
 // partitioning for the quicksort algorithm
 int partition(blitz::Array<int, 2> &a, int p, int r) {
-	int j, temp;
-	
-	int x = a(r,0);
-	int i = p -1;
-	
-	for(j = p;j<r;j++){
-		if(a(j,0)<= x)
-		{
-			i++;
-			temp = a(i,0);
-			a(i,0) = a(j,0);
-			a(j,0) = temp;
-			temp = a(i,1);
-			a(i,1) = a(j,1);
-			a(j,1) = temp;
-			temp = a(i,2);
-			a(i,2) = a(j,2);
-			a(j,2) = temp;
-			temp = a(i,3);
-			a(i,3) = a(j,3);
-			a(j,3) = temp;
-		}
-	}
-	temp = a(r,0);
-	a(r,0) = a(i +1,0);
-	a(i+1,0) = temp;
-	temp = a(r,1);
-	a(r,1) = a(i +1,1);
-	a(i+1,1) = temp;
-	temp = a(r,2);
-	a(r,2) = a(i +1,2);
-	a(i+1,2) = temp;
-	temp = a(r,3);
-	a(r,3) = a(i +1,3);
-	a(i+1,3) = temp;
+  int j, temp;
+  
+  int x = a(r,0);
+  int i = p -1;
+  
+  for(j = p;j<r;j++){
+    if(a(j,0)<= x)
+    {
+      i++;
+      temp = a(i,0);
+      a(i,0) = a(j,0);
+      a(j,0) = temp;
+      temp = a(i,1);
+      a(i,1) = a(j,1);
+      a(j,1) = temp;
+      temp = a(i,2);
+      a(i,2) = a(j,2);
+      a(j,2) = temp;
+      temp = a(i,3);
+      a(i,3) = a(j,3);
+      a(j,3) = temp;
+    }
+  }
+  temp = a(r,0);
+  a(r,0) = a(i +1,0);
+  a(i+1,0) = temp;
+  temp = a(r,1);
+  a(r,1) = a(i +1,1);
+  a(i+1,1) = temp;
+  temp = a(r,2);
+  a(r,2) = a(i +1,2);
+  a(i+1,2) = temp;
+  temp = a(r,3);
+  a(r,3) = a(i +1,3);
+  a(i+1,3) = temp;
     
-	return i+1;
+  return i+1;
 }
 
 // actual quicksort algorithm
 void quick_sort(blitz::Array<int, 2> &a, int l, int r)
 {
-   int j;
+  int j;
 
-   if( l < r ) 
-   {
-       // divide and conquer
-       j = partition( a, l, r);
-       quick_sort( a, l, j-1);
-       quick_sort( a, j+1, r);
-   }
+  if( l < r ) 
+  {
+    // divide and conquer
+    j = partition( a, l, r);
+    quick_sort( a, l, j-1);
+    quick_sort( a, j+1, r);
+  }
 }
 
-// MAIN PROGRAM    
-int main()
-  {
+int write_netcdf(blitz::Array<indexint,3> dataext) {
     int retval; // error terurn value
-    int ncid,ncid2,ncid3,ncid4; //netcdf ids (decided not to reuse these)
-    int varid,varid2,varid3,varid4; //variable ids (decided not to reuse these)
-    int err; 
-    
-    int itarget,jtarget,ktarget,ltarget; //calculating back target i,j,k,l that corresponds to maxima
-    indexint counter; // counts cells with certain properties (used for sanity checks)
+    int ncid; //netcdf ids (decided not to reuse these)
+    int varid; //variable ids (decided not to reuse these)
+
+    int x_dimid, y_dimid, z_dimid;
+    int dimids[3];
+
+   /* Always check the return code of every netCDF function call. In
+    * this example program, any retval which is not equal to NC_NOERR
+    * (0) will cause the program to print an error message and exit
+    * with a non-zero return code. */
+
+   /* Create the file. The NC_CLOBBER parameter tells netCDF to
+    * overwrite this file, if it already exists.*/
+   if ((retval = nc_create("output.nc",NC_CLOBBER|NC_NETCDF4, &ncid)))
+      ERR(retval);
+
+   /* Define the dimensions. NetCDF will hand back an ID for each. */
+   if ((retval = nc_def_dim(ncid, "x", imax, &x_dimid)))
+      ERR(retval);
+   if ((retval = nc_def_dim(ncid, "y", jmax, &y_dimid)))
+      ERR(retval);
+   if ((retval = nc_def_dim(ncid, "z", kmax, &z_dimid)))
+      ERR(retval);
+      
+   /* The dimids array is used to pass the IDs of the dimensions of
+    * the variable. */
+   dimids[0] = x_dimid;
+   dimids[1] = y_dimid;
+   dimids[2] = z_dimid;
+
+   /* Define the variable. The type of the variable in this case is
+    * NC_INT (4-byte integer). */
+   if ((retval = nc_def_var(ncid, "data", NC_UINT, 3, 
+          dimids, &varid)))
+      ERR(retval);
+
+   /* End define mode. This tells netCDF we are done defining
+    * metadata. */
+   if ((retval = nc_enddef(ncid)))
+      ERR(retval);
+
+   /* Write the pretend data to the file. Although netCDF supports
+    * reading and writing subsets of data, in this case we write all
+    * the data in one operation. */
+   
+   if ((retval = nc_put_var_uint(ncid, varid, dataext.data())))
+      ERR(retval);
+
+   /* Close the file. This frees up any internal netCDF resources
+    * associated with the file, and flushes any buffers. */
+   if ((retval = nc_close(ncid)))
+      ERR(retval);
+
+   printf("*** SUCCESS writing example file output.nc!\n");
+   return 0;
+}
+
+void load_mask(blitz::Array<bool,3> &maskext) {
+  int retval; // error return value
+  int ncid; //netcdf id
+
+  indexint counter; // counts cells with certain properties (used for sanity checks)
+
+  maskext=false;
+
+  // array that holds "cloud" mask as short (temporarily)
+  blitz::Array<short,3> maskshort(imax,jmax,kmax);
+
+  /* Open the file. NC_NOWRITE tells netCDF we want read-only access
+   * to the file.*/
+  if ((retval = nc_open("mask_field.nc", NC_NOWRITE, &ncid)))
+    ERR(retval);
+
+  blitzncshort(ncid,"maskext",maskshort);
+
+  /* Close the file, freeing all resources. */
+  if ((retval = nc_close(ncid)))
+    ERR(retval);
+
+  // transfer mask elements to boolean and count them
+  counter=1;
+  for (int i=1; i<imax-1; ++i) {
+    for (int j=1; j<jmax-1; ++j) {
+      for (int k=0; k<kmax; ++k) {
+        if(maskshort(i,j,k)>0) {
+          maskext(i,j,k)=true;
+          counter=counter+1;
+        }
+      }
+    }
+  }
+  printf("number of cloudy cells +1 %d \n",counter); 
+
+  maskshort.free();
+}
+
+void load_field(blitz::Array<short,3> &fieldext) {
+  int retval; // error return value
+  int ncid; //netcdf id
+
+  fieldext=0;
+
+  /* Open the file. NC_NOWRITE tells netCDF we want read-only access
+   * to the file.*/
+  if ((retval = nc_open("mask_field.nc", NC_NOWRITE, &ncid)))
+    ERR(retval);
+
+  blitzncshort(ncid,"fieldext",fieldext);
+
+  /* Close the file, freeing all resources. */
+  if ((retval = nc_close(ncid)))
+    ERR(retval);
+}
+
+
+int process(
+  blitz::Array<bool,    3> &maskext,
+  blitz::Array<short,   3> &fieldext,
+  blitz::Array<indexint,3> &dataext
+) {
+    int itarget,jtarget,ktarget; //calculating back target i,j,k,l that corresponds to maxima
+
     char tempdirection; // direction of steepest ascent temp-vars are used in inner loops
     indexint tempdata; // used in inner loop
     int tempmax,tempfield; // used in inner loop
     bool moreswaps; // used to check if all identities have been assigned, or further checking necessary
 
-    // array that holds "cloud" mask as short (temporarily)
-    blitz::Array<short,3> maskshort(imax,jmax,kmax);
-
-    /* Open the file. NC_NOWRITE tells netCDF we want read-only access
-     * to the file.*/
-    if ((retval = nc_open("mask_field.nc", NC_NOWRITE, &ncid)))
-      ERR(retval);
-
-    err=blitzncshort(ncid,"maskext",maskshort);
-
-    /* Close the file, freeing all resources. */
-    if ((retval = nc_close(ncid)))
-      ERR(retval);
-    
-    // array that holds the mask as boolean (including halo cells)
-    blitz::Array<bool,3> maskext(imax,jmax,kmax);
-    maskext=false;
-
-    // transfer mask elements to boolean and count them
-    counter=1;
-    for (int i=1; i<imax-1; ++i) {
-    for (int j=1; j<jmax-1; ++j) {
-    for (int k=0; k<kmax; ++k) {
-      if(maskshort(i,j,k)>0) {
-        maskext(i,j,k)=true;
-        counter=counter+1;
-      }
-    }
-    }
-    }
-    printf("number of cloudy cells +1 %d \n",counter); 
-
-    maskshort.free();
-
-    // array that holds field values
-    blitz::Array<short,3> fieldext(imax,jmax,kmax);
-    fieldext=0;
-
-    /* Open the file. NC_NOWRITE tells netCDF we want read-only access
-     * to the file.*/
-    if ((retval = nc_open("mask_field.nc", NC_NOWRITE, &ncid2)))
-       ERR(retval);
-
-    err=blitzncshort(ncid2,"fieldext",fieldext);
-
-    /* Close the file, freeing all resources. */
-    if ((retval = nc_close(ncid2)))
-       ERR(retval);
-
-    // array that hold actual numbers
-    blitz::Array<indexint,3> dataext(imax,jmax,kmax);
-    dataext=0;
-    
     // array that holds direction of steepest ascent
     blitz::Array<char,3> direction(imax,jmax,kmax);
     direction=0;
@@ -223,31 +283,31 @@ int main()
     if(lperiodic==true) {
       for (int i=0; i<imax; ++i) {
       for (int k=0; k<kmax; ++k) {
-    	if(maskext(i,jmax-2,k)==true) {
-    	  dataext(i,0,k)=dataext(i,jmax-2,k);
-    	  fieldext(i,0,k)=fieldext(i,jmax-2,k);
-    	  maskext(i,0,k)=maskext(i,jmax-2,k);
-    	}
-    	if(maskext(i,1,k)==true) {
-    	  dataext(i,jmax-1,k)=dataext(i,1,k);
-    	  fieldext(i,jmax-1,k)=fieldext(i,1,k);
-    	  maskext(i,jmax-1,k)=maskext(i,1,k);
-    	}
+      if(maskext(i,jmax-2,k)==true) {
+        dataext(i,0,k)=dataext(i,jmax-2,k);
+        fieldext(i,0,k)=fieldext(i,jmax-2,k);
+        maskext(i,0,k)=maskext(i,jmax-2,k);
+      }
+      if(maskext(i,1,k)==true) {
+        dataext(i,jmax-1,k)=dataext(i,1,k);
+        fieldext(i,jmax-1,k)=fieldext(i,1,k);
+        maskext(i,jmax-1,k)=maskext(i,1,k);
+      }
       }
       }
 
       for (int j=0; j<jmax; ++j) {
       for (int k=0; k<kmax; ++k) {
-    	if(maskext(imax-2,j,k)==true) {
-    	  dataext(0,j,k)=dataext(imax-2,j,k);
-    	  fieldext(0,j,k)=fieldext(imax-2,j,k);
-    	  maskext(0,j,k)=maskext(imax-2,j,k);
-    	}
-    	if(maskext(1,j,k)==true) {
-    	  dataext(imax-1,j,k)=dataext(1,j,k);
-    	  fieldext(imax-1,j,k)=fieldext(1,j,k);
-    	  maskext(imax-1,j,k)=maskext(1,j,k);
-    	}
+      if(maskext(imax-2,j,k)==true) {
+        dataext(0,j,k)=dataext(imax-2,j,k);
+        fieldext(0,j,k)=fieldext(imax-2,j,k);
+        maskext(0,j,k)=maskext(imax-2,j,k);
+      }
+      if(maskext(1,j,k)==true) {
+        dataext(imax-1,j,k)=dataext(1,j,k);
+        fieldext(imax-1,j,k)=fieldext(1,j,k);
+        maskext(imax-1,j,k)=maskext(1,j,k);
+      }
       }
       }
     }
@@ -272,14 +332,14 @@ int main()
             tempmax=tempfield;
           }
         }
-	if(maskext(i,j-1,k)==true) {
+  if(maskext(i,j-1,k)==true) {
           tempfield=fieldext(i,j-1,k);   
           if(tempfield>tempmax) {
             tempdirection=2;
             tempmax=tempfield;
           }
         }
-	if(k>0){
+  if(k>0){
           if(maskext(i,j,k-1)==true) {
             tempfield=fieldext(i,j,k-1);   
             if(tempfield>tempmax) {
@@ -295,7 +355,7 @@ int main()
             tempmax=tempfield;
           }
         }  
-	if(maskext(i,j+1,k)==true) {
+  if(maskext(i,j+1,k)==true) {
           tempfield=fieldext(i,j+1,k);   
           if(tempfield>tempmax) {
             tempdirection=5;
@@ -360,27 +420,27 @@ int main()
 
       // halo update
       if(lperiodic==true) {
-     	for (int i=0; i<imax; ++i) {
-     	for (int k=0; k<kmax; ++k) {
-     	  if(maskext(i,jmax-2,k)==true) {
-     	    dataext(i,0,k)=dataext(i,jmax-2,k);
-     	  }
-     	  if(maskext(i,1,k)==true) {
-     	    dataext(i,jmax-1,k)=dataext(i,1,k);
-     	  }
-     	}
-     	}
+      for (int i=0; i<imax; ++i) {
+      for (int k=0; k<kmax; ++k) {
+        if(maskext(i,jmax-2,k)==true) {
+          dataext(i,0,k)=dataext(i,jmax-2,k);
+        }
+        if(maskext(i,1,k)==true) {
+          dataext(i,jmax-1,k)=dataext(i,1,k);
+        }
+      }
+      }
   
-     	for (int j=0; j<jmax; ++j) {
-     	for (int k=0; k<kmax; ++k) {
-     	  if(maskext(imax-2,j,k)==true) {
-     	    dataext(0,j,k)=dataext(imax-2,j,k);
-     	  }
-     	  if(maskext(1,j,k)==true) {
-     	    dataext(imax-1,j,k)=dataext(1,j,k);
-     	  }
-     	}
-     	}
+      for (int j=0; j<jmax; ++j) {
+      for (int k=0; k<kmax; ++k) {
+        if(maskext(imax-2,j,k)==true) {
+          dataext(0,j,k)=dataext(imax-2,j,k);
+        }
+        if(maskext(1,j,k)==true) {
+          dataext(imax-1,j,k)=dataext(1,j,k);
+        }
+      }
+      }
       }
       
       // reverse sweep
@@ -481,31 +541,67 @@ int main()
     if(lperiodic==true) {
       for (int i=0; i<imax; ++i) {
       for (int k=0; k<kmax; ++k) {
-     	if(dataext(i,jmax-2,k)>0) {
-     	  dataext(i,0,k)=dataext(i,jmax-2,k);
-     	}
-     	if(dataext(i,1,k)>0) {      
-     	  dataext(i,jmax-1,k)=dataext(i,1,k);
-     	}
+      if(dataext(i,jmax-2,k)>0) {
+        dataext(i,0,k)=dataext(i,jmax-2,k);
+      }
+      if(dataext(i,1,k)>0) {      
+        dataext(i,jmax-1,k)=dataext(i,1,k);
+      }
       }
       }
      
       for (int j=0; j<jmax; ++j) {
       for (int k=0; k<kmax; ++k) {
-     	if(dataext(imax-2,j,k)>0) {
-     	  dataext(0,j,k)=dataext(imax-2,j,k);
-     	}
-     	if(dataext(1,j,k)>0) {
-     	  dataext(imax-1,j,k)=dataext(1,j,k);
-     	}
+      if(dataext(imax-2,j,k)>0) {
+        dataext(0,j,k)=dataext(imax-2,j,k);
+      }
+      if(dataext(1,j,k)>0) {
+        dataext(imax-1,j,k)=dataext(1,j,k);
+      }
       }
       }
     }
 
     // free up space (masking and direction)
     direction.free();
-    maskext.free();
+
+    return 0;
+}
+
+
+// MAIN PROGRAM    
+int main() {
+  // array that holds the mask as boolean (including halo cells)
+  blitz::Array<bool,3> maskext(imax,jmax,kmax);
+  load_mask(maskext);
+
+  // array that holds field values
+  blitz::Array<short,3> fieldext(imax,jmax,kmax);
+  load_field(fieldext);
+
+  // array that hold actual numbers
+  blitz::Array<indexint,3> dataext(imax,jmax,kmax);
+  dataext=0;
+
+  process(maskext, fieldext, dataext);
+  maskext.free();
+  fieldext.free();
+
+  write_netcdf(dataext);
+  dataext.free();
+}
+
     
+
+int col_identification(
+    blitz::Array<indexint,3> &dataext,
+    int cloudcounter
+) {
+    int itarget,jtarget,ktarget,ltarget; //calculating back target i,j,k,l that corresponds to maxima
+    bool moreswaps; // used to check if all identities have been assigned, or further checking necessary
+
+    indexint counter; // counts cells with certain properties (used for sanity checks)
+
     // now the more difficult part: col identification
     // a border is identified by its position and direction
     // by clustering in 4d (i,j,k, direction), the border between cloud pairs is identified
@@ -606,27 +702,27 @@ int main()
     if(lperiodic==true) {
       for (int i=0; i<imax; ++i) {
       for (int k=0; k<kmax; ++k) {
-    	if(nrborders(i,jmax-2,k)>0) {
-    	  nrborders(i,0,k)=nrborders(i,jmax-2,k);
-    	  startindex(i,0,k)=startindex(i,jmax-2,k);
-    	}
-    	if(nrborders(i,1,k)>0) {
-    	  nrborders(i,jmax-1,k)=nrborders(i,1,k);
-    	  startindex(i,jmax-1,k)=startindex(i,1,k);
-    	}
+      if(nrborders(i,jmax-2,k)>0) {
+        nrborders(i,0,k)=nrborders(i,jmax-2,k);
+        startindex(i,0,k)=startindex(i,jmax-2,k);
+      }
+      if(nrborders(i,1,k)>0) {
+        nrborders(i,jmax-1,k)=nrborders(i,1,k);
+        startindex(i,jmax-1,k)=startindex(i,1,k);
+      }
       }
       }
     
       for (int j=0; j<jmax; ++j) {
       for (int k=0; k<kmax; ++k) {
-    	 if(nrborders(imax-2,j,k)>0) {
-    	   nrborders(0,j,k)=nrborders(imax-2,j,k);
-    	   startindex(0,j,k)=startindex(imax-2,j,k);
-    	 }
-    	 if(nrborders(1,j,k)>0) {
-    	   nrborders(imax-1,j,k)=nrborders(1,j,k);
-    	   startindex(imax-1,j,k)=startindex(1,j,k);
-    	 }
+       if(nrborders(imax-2,j,k)>0) {
+         nrborders(0,j,k)=nrborders(imax-2,j,k);
+         startindex(0,j,k)=startindex(imax-2,j,k);
+       }
+       if(nrborders(1,j,k)>0) {
+         nrborders(imax-1,j,k)=nrborders(1,j,k);
+         startindex(imax-1,j,k)=startindex(1,j,k);
+       }
       }
       }
     }
@@ -1166,59 +1262,6 @@ int main()
     }
     }
 
-    int x_dimid, y_dimid, z_dimid;
-    int dimids[3];
-
     encounterorder.free();
-
-   /* Always check the return code of every netCDF function call. In
-    * this example program, any retval which is not equal to NC_NOERR
-    * (0) will cause the program to print an error message and exit
-    * with a non-zero return code. */
-
-   /* Create the file. The NC_CLOBBER parameter tells netCDF to
-    * overwrite this file, if it already exists.*/
-   if ((retval = nc_create("output.nc",NC_CLOBBER|NC_NETCDF4, &ncid4)))
-      ERR(retval);
-
-   /* Define the dimensions. NetCDF will hand back an ID for each. */
-   if ((retval = nc_def_dim(ncid4, "x", imax, &x_dimid)))
-      ERR(retval);
-   if ((retval = nc_def_dim(ncid4, "y", jmax, &y_dimid)))
-      ERR(retval);
-   if ((retval = nc_def_dim(ncid4, "z", kmax, &z_dimid)))
-      ERR(retval);
-      
-   /* The dimids array is used to pass the IDs of the dimensions of
-    * the variable. */
-   dimids[0] = x_dimid;
-   dimids[1] = y_dimid;
-   dimids[2] = z_dimid;
-
-   /* Define the variable. The type of the variable in this case is
-    * NC_INT (4-byte integer). */
-   if ((retval = nc_def_var(ncid4, "data", NC_UINT, 3, 
-			    dimids, &varid)))
-      ERR(retval);
-
-   /* End define mode. This tells netCDF we are done defining
-    * metadata. */
-   if ((retval = nc_enddef(ncid4)))
-      ERR(retval);
-
-   /* Write the pretend data to the file. Although netCDF supports
-    * reading and writing subsets of data, in this case we write all
-    * the data in one operation. */
-   
-   if ((retval = nc_put_var_uint(ncid4, varid, dataext.data())))
-      ERR(retval);
-
-   /* Close the file. This frees up any internal netCDF resources
-    * associated with the file, and flushes any buffers. */
-   if ((retval = nc_close(ncid4)))
-      ERR(retval);
-
-   printf("*** SUCCESS writing example file output.nc!\n");
-   return 0;
    
   }
