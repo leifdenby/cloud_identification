@@ -364,7 +364,8 @@ void identify_steepest_ascent(
 void assign_to_local_maxima(
   blitz::Array<bool,    3> &maskext,
   blitz::Array<indexint,3> &dataext,
-  blitz::Array<char,3> direction
+  blitz::Array<char,3> direction,
+  int *cloudcounter
 ) {
   int itarget,jtarget,ktarget; //calculating back target i,j,k,l that corresponds to maxima
   char tempdirection; // direction of steepest ascent temp-vars are used in inner loops
@@ -451,15 +452,14 @@ void assign_to_local_maxima(
 
   // renumber the cells (remember halo behavior)
   // do not assign zero
-  int cloudcounter;
-  cloudcounter=1;
+  (*cloudcounter)=1;
   for (int i=1; i<imax-1; ++i) {
     for (int j=1; j<jmax-1; ++j) {
       for (int k=0; k<kmax; ++k) {
         if(maskext(i,j,k)==true) {
           if(dataext(i,j,k)==i*jmax*kmax+j*kmax+k){
-            dataext(i,j,k)=cloudcounter;
-            cloudcounter=cloudcounter+1;
+            dataext(i,j,k)=*cloudcounter;
+            (*cloudcounter)=(*cloudcounter)+1;
             maskext(i,j,k)=false;
           }
         }
@@ -467,7 +467,7 @@ void assign_to_local_maxima(
     }
   }
 
-  printf("cloudcounter +1 %d \n",cloudcounter);
+  printf("cloudcounter +1 %d \n", *cloudcounter);
 
   // assign identity of maximum to each "cloudy" cell
   for (int i=1; i<imax-1; ++i) {
@@ -512,46 +512,9 @@ void init_output(
 
 
 
-// MAIN PROGRAM    
-int main() {
-  // array that holds the mask as boolean (including halo cells)
-  blitz::Array<bool,3> maskext(imax,jmax,kmax);
-  load_mask(maskext);
-
-  // array that holds field values
-  blitz::Array<short,3> fieldext(imax,jmax,kmax);
-  load_field(fieldext);
-
-  // array that hold actual numbers
-  blitz::Array<indexint,3> dataext(imax,jmax,kmax);
-  init_output(maskext, dataext);
-
-  if(lperiodic==true) {
-    halo_swap<bool>(maskext);
-    halo_swap<indexint>(dataext);
-    halo_swap<short>(fieldext);
-  }
-
-  // array that holds direction of steepest ascent
-  blitz::Array<char,3> direction(imax,jmax,kmax);
-  direction=0;
-  identify_steepest_ascent(maskext, fieldext, direction);
-  fieldext.free();
-
-  assign_to_local_maxima(maskext, dataext, direction);
-  // free up space (masking and direction)
-  direction.free();
-  maskext.free();
-
-
-
-  write_netcdf(dataext);
-  dataext.free();
-}
-
     
 
-int col_identification(
+void merge_smaller_peaks(
     blitz::Array<indexint,3> &dataext,
     int cloudcounter
 ) {
@@ -1215,3 +1178,42 @@ int col_identification(
     encounterorder.free();
    
   }
+
+
+// MAIN PROGRAM    
+int main() {
+  // array that holds the mask as boolean (including halo cells)
+  blitz::Array<bool,3> maskext(imax,jmax,kmax);
+  load_mask(maskext);
+
+  // array that holds field values
+  blitz::Array<short,3> fieldext(imax,jmax,kmax);
+  load_field(fieldext);
+
+  // array that hold actual numbers
+  blitz::Array<indexint,3> dataext(imax,jmax,kmax);
+  init_output(maskext, dataext);
+
+  if(lperiodic==true) {
+    halo_swap<bool>(maskext);
+    halo_swap<indexint>(dataext);
+    halo_swap<short>(fieldext);
+  }
+
+  // array that holds direction of steepest ascent
+  blitz::Array<char,3> direction(imax,jmax,kmax);
+  direction=0;
+  identify_steepest_ascent(maskext, fieldext, direction);
+  fieldext.free();
+
+  int cloudcounter;
+  assign_to_local_maxima(maskext, dataext, direction, &cloudcounter);
+  // free up space (masking and direction)
+  direction.free();
+  maskext.free();
+
+  merge_smaller_peaks(dataext, cloudcounter);
+
+  write_netcdf(dataext);
+  dataext.free();
+}
