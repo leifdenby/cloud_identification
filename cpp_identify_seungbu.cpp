@@ -24,9 +24,9 @@
 #define ERR(e) {printf("Error: %s\n", nc_strerror(e)); exit(ERRCODE);}
 
 // PROPERTIES OF INPUT
-static const int imax = 514;
-static const int jmax = 514;
-static const int kmax = 2;
+static const int imax = 200;
+static const int jmax = 200;
+static const int kmax = 1;
 static const float inv_scaling_parameter=1.0/3200.0; // data conversion parameter
                                                        // corresponding to scaling in pre-processing script
 static const bool lperiodic = true; // is the domain periodic?
@@ -372,6 +372,8 @@ void assign_to_local_maxima(
 
   indexint tempdata; // used in inner loop
   bool moreswaps; // used to check if all identities have been assigned, or further checking necessary
+
+  printf("Assigning in-cloud points to local maxima\n");
 
   // forward sweep
   moreswaps=true; 
