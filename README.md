@@ -23,6 +23,17 @@ which should be of the `short` datatype.
 2. `maskext` is turned into boolean 3D array, from variable `maskshort` to
 `maskext`
 
+# Compile
+
+The most easy way to compile is to discover dependencies with cmake, and so to
+make with:
+
+    mkdir build/
+    cd build
+    cmake ..
+    make
+
+
 # Compile on MONSOON
 
 Compile on MONSOON
