@@ -615,6 +615,13 @@ void merge_smaller_peaks(
         }
         nrborders(i,j,k)=nrb;
         si1=si1+nrb;
+
+#ifdef DEBUG_CHECK_LIMITS
+            if (si1+6 >= borderindex) {
+              printf("Error: `borderfield` array too small, decrease `borderfac` to increase size\n");
+              exit(-1);
+            }
+#endif
       }
     }
     }
@@ -912,6 +919,15 @@ void merge_smaller_peaks(
     blitz::Array<int,2> coldata(colmax,4);
     
     coldata=-2147483648; // lowest possible value
+
+#ifdef DEBUG_CHECK_LIMITS
+    for (int l=0; l<borderindex; ++l) {                
+      if (borderfield(l) >= colmax) {
+        printf("Error: `colmax` array too small, decrease `colfac` to increase size\n");
+        exit(-1);
+      }
+    }
+#endif
 
     // repeat calculation of si1 and nrb on the fly here to save memory
     si1=1;
