@@ -54,6 +54,8 @@ blitz::Array<short,3> & tab)
   size_t start[] = {0,0,0};
   size_t count[3];
 
+  printf("Loading `%s`...\n", nomVariable);
+
   status = nc_inq_varid(ncId, nomVariable, &varId);
   if (status != NC_NOERR)
     std::cout << nomVariable << " is absent" << std::endl ;
@@ -232,12 +234,15 @@ void load_mask(blitz::Array<bool,3> &maskext) {
   // array that holds "cloud" mask as short (temporarily)
   blitz::Array<short,3> maskshort(imax,jmax,kmax);
 
+  printf("Opening `mask_field.nc`\n");
+
   /* Open the file. NC_NOWRITE tells netCDF we want read-only access
    * to the file.*/
   if ((retval = nc_open("mask_field.nc", NC_NOWRITE, &ncid)))
     ERR(retval);
 
   blitzncshort(ncid,"maskext",maskshort);
+  maskext.resize(maskshort.shape());
 
   /* Close the file, freeing all resources. */
   if ((retval = nc_close(ncid)))
@@ -265,6 +270,8 @@ void load_field(blitz::Array<short,3> &fieldext) {
   int ncid; //netcdf id
 
   fieldext=0;
+
+  printf("Opening `mask_field.nc`\n");
 
   /* Open the file. NC_NOWRITE tells netCDF we want read-only access
    * to the file.*/
@@ -1187,6 +1194,7 @@ void merge_along_cols(
 
 void merge_smaller_peaks(
   blitz::Array<indexint,3> &dataext,
+  blitz::Array<short,3> &fieldext,
   const int cloudcounter
 ) {
 
@@ -1214,9 +1222,10 @@ void merge_smaller_peaks(
     }
 #endif
 
-  // reopen the field data, now memory has become available again
-  blitz::Array<short,3> fieldext(imax,jmax,kmax);
-  load_field(fieldext);
+  if (fieldext.size() == 0) {
+    // reopen the field data, now memory has become available again
+    load_field(fieldext);
+  }
 
   find_cols_on_borders(fieldext, dataext, borderfield, assocfield, coldata, borderfield_counter);
   borderfield.free();
@@ -1228,19 +1237,23 @@ void merge_smaller_peaks(
   coldata.free();
 }
 
+/*
+ * Common interface for running from command line and calling from python, 
+ * if fieldext and maskext are zero length then it will be attempted to load data from file.
+ */
+void find_objects(
+  blitz::Array<short,3> &fieldext,
+  blitz::Array<bool, 3> &maskext,
+  blitz::Array<indexint,3> &dataext
+) {
 
-// MAIN PROGRAM    
-int main() {
-  // array that holds the mask as boolean (including halo cells)
-  blitz::Array<bool,3> maskext(imax,jmax,kmax);
-  load_mask(maskext);
+  bool dynamically_load_fields = (fieldext.size() == 0 || maskext.size() == 0);
 
-  // array that holds field values
-  blitz::Array<short,3> fieldext(imax,jmax,kmax);
-  load_field(fieldext);
-
-  // array that hold actual numbers
-  blitz::Array<indexint,3> dataext(imax,jmax,kmax);
+  if (dynamically_load_fields) {
+    load_field(fieldext);
+    load_mask(maskext);
+    dataext.resize(fieldext.shape());
+  }
   init_output(maskext, dataext);
 
   if(lperiodic==true) {
@@ -1250,20 +1263,39 @@ int main() {
   }
 
   // array that holds direction of steepest ascent
-  blitz::Array<char,3> direction(imax,jmax,kmax);
+  blitz::Array<char,3> direction(fieldext.shape());
   direction=0;
   identify_steepest_ascent(maskext, fieldext, direction);
+
+  if (dynamically_load_fields) {
+    fieldext.free();
+  }
 
   int cloudcounter;
   assign_to_local_maxima(maskext, dataext, direction, &cloudcounter);
 
+  if (dynamically_load_fields) {
+    maskext.free();
+  }
+
   // free up space (masking and direction)
   direction.free();
-  maskext.free();
-  fieldext.free();
 
-  merge_smaller_peaks(dataext, cloudcounter);
+  merge_smaller_peaks(dataext, fieldext, cloudcounter);
+}
+
+
+// MAIN PROGRAM    
+int main() {
+  // array that holds the mask as boolean (including halo cells)
+  blitz::Array<bool,3> maskext;
+
+  // array that holds field values
+  blitz::Array<short,3> fieldext;
+
+  // array that hold actual numbers
+  blitz::Array<indexint,3> dataext;
+  find_objects(fieldext, maskext, dataext);
 
   write_netcdf(dataext);
-  dataext.free();
 }
