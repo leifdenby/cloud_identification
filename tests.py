@@ -69,7 +69,7 @@ def test_two_circles_different_scalar_values():
     m = np.logical_or(m1, m2)
 
     d_out = run_classifier(data=d, mask=m)
-    assert len(np.unique(d_out)) == 2
+    assert len(np.unique(d_out)) == 3
 
 
 def test_two_circles_same_scalar_value():
@@ -82,7 +82,7 @@ def test_two_circles_same_scalar_value():
     m = np.logical_or(m1, m2)
 
     d_out = run_classifier(data=d, mask=m)
-    assert len(np.unique(d_out)) == 2
+    assert len(np.unique(d_out)) == 3
 
 def test_two_circles_x_periodic_scalar_field():
     x, y = get_grid()
@@ -159,7 +159,7 @@ def run_classifier(data, mask):
     proc.communicate()
     
     if not proc.returncode == 0:
-        # delete_input()
+        delete_input()
         raise Exception("classification program crashed, return code: {}".format(proc.returncode))
 
     return read_output()

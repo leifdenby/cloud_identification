@@ -39,9 +39,9 @@ static const float mincolratio = 0.7; // fractional height used for deciding whe
 
 // PARAMETERS WHICH DETERMINE MEMORY FOOTPRINT
 // By what factor far can we make arrays smaller? (reduce memory footprint)
-static const int blobfac = 32; // number of blobs wrt number of points
-static const int borderfac = 8; // number of border points wrt number of points
-static const int colfac = 32; // number of cols wrt number of points
+static const int blobfac = 2; // number of blobs wrt number of points
+static const int borderfac = 2; // number of border points wrt number of points
+static const int colfac = 2; // number of cols wrt number of points
 
 typedef uint32_t indexint; //use unsigned array indices
 
@@ -513,27 +513,18 @@ void init_output(
 }
 
 
-
-    
-
-void merge_smaller_peaks(
+void blah1(
     blitz::Array<indexint,3> &dataext,
+    blitz::Array<int,1> borderfield,
+    blitz::Array<indexint,1> assocfield,
+    indexint *borderfield_counter,
     int cloudcounter
 ) {
-    int itarget,jtarget,ktarget,ltarget; //calculating back target i,j,k,l that corresponds to maxima
+    int ltarget; //calculating back target i,j,k,l that corresponds to maxima
     bool moreswaps; // used to check if all identities have been assigned, or further checking necessary
 
-    indexint counter; // counts cells with certain properties (used for sanity checks)
-
-    // now the more difficult part: col identification
-    // a border is identified by its position and direction
-    // by clustering in 4d (i,j,k, direction), the border between cloud pairs is identified
-    long borderindex;
-    borderindex=(long(imax)*long(jmax)*long(kmax))/long(borderfac);
     blitz::Array<char,3> nrborders(imax,jmax,kmax); // nr of borders of current grid cell
     blitz::Array<int,3> startindex(imax,jmax,kmax); // start index (si) of current grid cell
-    blitz::Array<int,1> borderfield(borderindex); // identity of the border (related to i,j,k and direction) 
-    blitz::Array<indexint,1> assocfield(borderindex); // identy of border from the neighbouring grid vell
 
     // initialise blitz arrays
     nrborders=0; 
@@ -544,7 +535,6 @@ void merge_smaller_peaks(
     int bf0,bf1,bf00; // borderfield temporary variable
     int nrb0,nrb1,nrb; // nuber of borders temporary variables
     int si0,si1; // start index temporary variables
-    int colindex; // col index (to be calculated)
     indexint nrfieldtemp0,nrfieldtemp1; // cloud number temporary variables
                                         // in first loop
     indexint af0,af1; // associated fields temporary variables
@@ -850,7 +840,7 @@ void merge_smaller_peaks(
     }
     
     // renumber the borders
-    counter=1; //avoid zero
+    (*borderfield_counter)=1; //avoid zero
     for (int i=1; i<imax-1; ++i) {
     for (int j=1; j<jmax-1; ++j) {
     for (int k=0; k<kmax; ++k) {
@@ -859,8 +849,8 @@ void merge_smaller_peaks(
         si1=startindex(i,j,k);
         for (int l=0; l<nrb; ++l) {                
           if(borderfield(si1+l)==si1+l) {
-            borderfield(si1+l)=-counter;
-            counter=counter+1;
+            borderfield(si1+l)=-(*borderfield_counter);
+            (*borderfield_counter)=(*borderfield_counter)+1;
           }
         }
       }
@@ -868,7 +858,7 @@ void merge_smaller_peaks(
     }
     }
 
-    printf("borderfield counter +1 %d \n",counter);
+    printf("borderfield borderfield_counter +1 %d \n", *borderfield_counter);
            
     for (int i=1; i<imax-1; ++i) {
     for (int j=1; j<jmax-1; ++j) {
@@ -905,20 +895,24 @@ void merge_smaller_peaks(
 
     nrborders.free();
     startindex.free();
+}
 
-    // reopen the field data, now memory has become available again
-    blitz::Array<short,3> fieldext2(imax,jmax,kmax);
+void blah2(
+    blitz::Array<short,3> &fieldext,
+    blitz::Array<indexint,3> &dataext,
+    blitz::Array<int,1> &borderfield,
+    blitz::Array<indexint,1> &assocfield,
+    blitz::Array<int,2> &coldata,
+    indexint borderfield_counter
+) {
+    int itarget,jtarget,ktarget,ltarget; //calculating back target i,j,k,l that corresponds to maxima
+    int colindex; // col index (to be calculated)
 
-    load_field(fieldext2);
+    int nrb0,nrb1,nrb; // nuber of borders temporary variables
+    int si0,si1; // start index temporary variables
+    indexint nrfieldtemp0,nrfieldtemp1; // cloud number temporary variables
+                                        // in first loop
 
-    
-    // initialise array which holds data on cols
-    // their heights and the associated "clouds"
-    long colmax;
-    colmax=(long(imax)*long(jmax)*long(kmax))/long(colfac);            
-    blitz::Array<int,2> coldata(colmax,4);
-    
-    coldata=-2147483648; // lowest possible value
 
 #ifdef DEBUG_CHECK_LIMITS
     for (int l=0; l<borderindex; ++l) {                
@@ -983,13 +977,13 @@ void merge_smaller_peaks(
             coldata(colindex,2)=dataext(i,j,k);
             coldata(colindex,3)=assocfield(si1+l);
             if(dataext(i,j,k)<assocfield(si1+l)) {
-              if(fieldext2(i,j,k)>coldata(colindex,0)) {
-                coldata(colindex,0)=fieldext2(i,j,k);
+              if(fieldext(i,j,k)>coldata(colindex,0)) {
+                coldata(colindex,0)=fieldext(i,j,k);
               }
             }
             else {
-              if(fieldext2(i,j,k)>coldata(colindex,1)) {
-                coldata(colindex,1)=fieldext2(i,j,k);
+              if(fieldext(i,j,k)>coldata(colindex,1)) {
+                coldata(colindex,1)=fieldext(i,j,k);
               }
             }
           } 
@@ -1000,11 +994,18 @@ void merge_smaller_peaks(
     }
     }
     printf("start index of last cell %d \n",si1);
+}
+
+void blah3(
+  blitz::Array<short,3> &fieldext,
+  blitz::Array<indexint,3> &dataext,
+  blitz::Array<int,2> coldata,
+  indexint cloudcounter,
+  indexint borderfield_counter
+) {
+    bool moreswaps; // used to check if all identities have been assigned, or further checking necessary
     
-    borderfield.free();
-    assocfield.free();
-    
-    for (int colindex=0; colindex<counter; ++colindex) {
+    for (int colindex=0; colindex<borderfield_counter; ++colindex) {
       if(coldata(colindex,0)>coldata(colindex,1)) {
         coldata(colindex,0)=coldata(colindex,1);
       }
@@ -1026,23 +1027,23 @@ void merge_smaller_peaks(
     for (int k=0; k<kmax; ++k) {
        nrfind=dataext(i,j,k);
        if(nrfind>0) {
-          if(fieldext2(i,j,k)>blobmaxs(nrfind)) {
-             blobmaxs(nrfind)=fieldext2(i,j,k);
+          if(fieldext(i,j,k)>blobmaxs(nrfind)) {
+             blobmaxs(nrfind)=fieldext(i,j,k);
           }
-          if(fieldext2(i,j,k)<blobmins(nrfind)) {
-             blobmins(nrfind)=fieldext2(i,j,k);
+          if(fieldext(i,j,k)<blobmins(nrfind)) {
+             blobmins(nrfind)=fieldext(i,j,k);
           }
        }
     }
     }
     } 
 
-    fieldext2.free();
+    fieldext.free();
 
     int cld1,cld2;
     
     // SORT COLDATA BY FIRST COLUMN
-    quick_sort(coldata, 1, counter-2);
+    quick_sort(coldata, 1, borderfield_counter-2);
     
     // array which points to the "parent cloud"             
     blitz::Array<int,1> targetcld(blobindex);
@@ -1057,7 +1058,7 @@ void merge_smaller_peaks(
     int m1,m2,m3;
     float m11,m22,m33,col,colratio;
     
-    for (int i=counter-1; i>=1; --i) {
+    for (int i=borderfield_counter-1; i>=1; --i) {
       cld1=coldata(i,2);
       cld2=coldata(i,3);
       targetcld1=targetcld(cld1);
@@ -1196,6 +1197,45 @@ void merge_smaller_peaks(
     encounterorder.free();
    
   }
+
+
+
+    
+
+void merge_smaller_peaks(
+    blitz::Array<indexint,3> &dataext,
+    int cloudcounter
+) {
+
+  long borderindex;
+  borderindex=(long(imax)*long(jmax)*long(kmax))/long(borderfac);
+  blitz::Array<int,1> borderfield(borderindex); // identity of the border (related to i,j,k and direction) 
+  blitz::Array<indexint,1> assocfield(borderindex); // identy of border from the neighbouring grid vell
+
+  indexint borderfield_counter = 1; // counts cells with certain properties (used for sanity checks)
+
+  blah1(dataext, borderfield, assocfield, &borderfield_counter, cloudcounter);
+
+  // initialise array which holds data on cols
+  // their heights and the associated "clouds"
+  long colmax;
+  colmax=(long(imax)*long(jmax)*long(kmax))/long(colfac);            
+  blitz::Array<int,2> coldata(colmax,4);
+
+  coldata=-2147483648; // lowest possible value
+
+  // reopen the field data, now memory has become available again
+  blitz::Array<short,3> fieldext(imax,jmax,kmax);
+  load_field(fieldext);
+
+  blah2(fieldext, dataext, borderfield, assocfield, coldata, borderfield_counter);
+  borderfield.free();
+  assocfield.free();
+
+
+  blah3(fieldext, dataext, coldata, cloudcounter, borderfield_counter);
+  fieldext.free();
+}
 
 
 // MAIN PROGRAM    
