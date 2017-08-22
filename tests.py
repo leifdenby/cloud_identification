@@ -157,9 +157,9 @@ def run_classifier(data, mask):
     save_input()
     proc = subprocess.Popen('build/main')
     proc.communicate()
-    
+    delete_input()
+
     if not proc.returncode == 0:
-        delete_input()
         raise Exception("classification program crashed, return code: {}".format(proc.returncode))
 
     return read_output()
