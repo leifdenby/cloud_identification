@@ -41,7 +41,9 @@ function(find_python_module module)
         string(TOUPPER ${module} module_upper)
         if(NOT PY_${module_upper})
                 if(ARGC GREATER 1 AND ARGV1 STREQUAL "REQUIRED")
-                        set(${module}_FIND_REQUIRED TRUE)
+                        set(PY_${module}_FIND_REQUIRED TRUE)
+                else()
+                        set(PY_${module}_FIND_QUIETLY TRUE)
                 endif()
                 # A module's location is usually a directory, but for binary modules
                 # it's a .so file.
@@ -50,9 +52,22 @@ function(find_python_module module)
                         RESULT_VARIABLE _${module}_status 
                         OUTPUT_VARIABLE _${module}_location
                         ERROR_QUIET OUTPUT_STRIP_TRAILING_WHITESPACE)
+                execute_process(COMMAND "${PYTHON_EXEC}" "-c" 
+                        "import re, ${module}; print ${module}.__version__"
+                        OUTPUT_VARIABLE _${module}_version
+                        ERROR_QUIET OUTPUT_STRIP_TRAILING_WHITESPACE)
                 if(NOT _${module}_status)
-                        set(PY_${module_upper} ${_${module}_location} CACHE STRING 
-                                "Location of Python module ${module}")
+                        set(PY_${module_upper} ${_${module}_location} CACHE STRING "Location of Python module ${module}")
+
+                        string(REPLACE "." ";" VERSION_LIST "${_${module}_version}")
+                        list(GET VERSION_LIST 0 _${module}_version_major)
+                        list(GET VERSION_LIST 1 _${module}_version_minor)
+                        list(GET VERSION_LIST 2 _${module}_version_patch)
+
+                        set(PY_${module_upper}_VERSION ${_${module}_version} CACHE STRING "Version of Python module ${module}")
+                        set(PY_${module_upper}_VERSION_MAJOR ${_${module}_version_major} CACHE STRING "Major version of Python module ${module}")
+                        set(PY_${module_upper}_VERSION_MINOR ${_${module}_version_minor} CACHE STRING "Minor version of Python module ${module}")
+                        set(PY_${module_upper}_VERSION_PATCH ${_${module}_version_patch} CACHE STRING "Patch version of Python module ${module}")
                 endif(NOT _${module}_status)
         endif(NOT PY_${module_upper})
         find_package_handle_standard_args(PY_${module} DEFAULT_MSG PY_${module_upper})

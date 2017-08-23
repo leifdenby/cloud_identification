@@ -21,13 +21,19 @@ set (NETCDF_C "YES")
 FIND_PACKAGE(NetCDF REQUIRED)
 
 find_package(python)
-find_python_module(weave REQUIRED)
+find_python_module(weave QUIET)
+find_python_module(scipy.weave QUIET)
 
-if (NOT PY_WEAVE)
-   message(FATAL_ERROR "Couldn't find python module `weave` (which is required to provide `blitz`), please install with 'pip install weave'")
-else()
-   set(BLITZ_INCLUDES ${PY_WEAVE}/blitz)
+if(NOT (PY_WEAVE OR PY_SCIPY.WEAVE))
+  message(FATAL_ERROR "Couldn't find python module `weave` (which is
+  required to provide `blitz`). Since scipy v0.19 weave is no longer
+  included with scipy. Please install with 'pip install weave'")
+elseif(PY_WEAVE)
+  set(BLITZ_INCLUDES ${PY_SCIPY}/weave/blitz)
+elseif(PY_SCIPY.WEAVE)
+  set(BLITZ_INCLUDES ${PY_SCIPY.WEAVE}/blitz)
 endif()
+
 
 
 include_directories(${netCDF_INCLUDE_DIR} ${BLITZ_INCLUDES})
