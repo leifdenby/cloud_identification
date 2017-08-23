@@ -42,7 +42,7 @@ function(find_python_module module)
         if(NOT PY_${module_upper})
                 if(ARGC GREATER 1 AND ARGV1 STREQUAL "REQUIRED")
                         set(PY_${module}_FIND_REQUIRED TRUE)
-                else()
+                elseif(ARGC GREATER 1 AND ARGV1 STREQUAL "QUIET")
                         set(PY_${module}_FIND_QUIETLY TRUE)
                 endif()
                 # A module's location is usually a directory, but for binary modules

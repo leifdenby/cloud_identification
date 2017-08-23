@@ -21,8 +21,8 @@ set (NETCDF_C "YES")
 FIND_PACKAGE(NetCDF REQUIRED)
 
 find_package(python)
-find_python_module(weave QUIET)
-find_python_module(scipy.weave QUIET)
+find_python_module(weave)
+find_python_module(scipy.weave)
 
 if(NOT (PY_WEAVE OR PY_SCIPY.WEAVE))
   message(FATAL_ERROR "Couldn't find python module `weave` (which is
