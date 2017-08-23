@@ -40,7 +40,7 @@ if (NETCDF_INCLUDES AND NETCDF_LIBRARIES)
   set (NETCDF_FIND_QUIETLY TRUE)
 endif (NETCDF_INCLUDES AND NETCDF_LIBRARIES)
 
-find_path (NETCDF_INCLUDES netcdf_par.h
+find_path (NETCDF_INCLUDES netcdf.h
            HINTS ${NETCDF_ROOT}/include
                  ${NETCDF_DIR}/include
                  $ENV{NETCDF_DIR}/include
@@ -95,7 +95,6 @@ else()
 endif()
 
 set (NETCDF_LIBRARIES "${NetCDF_libs}" CACHE STRING "All NetCDF libraries required for interface level")
-
 
 # handle the QUIETLY and REQUIRED arguments and set NETCDF_FOUND to TRUE if
 # all listed variables are TRUE
