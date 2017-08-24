@@ -6,6 +6,8 @@ project(cloud_identification)
 set(CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} "${CMAKE_SOURCE_DIR}/cmake/Modules/")
 set(BUILD_SHARED_LIBS "YES")
 
+set(CMAKE_EXPORT_COMPILE_COMMANDS YES)
+
 #set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -pthread -fno-strict-aliasing -DNDEBUG -g -fwrapv -fPIC -mtune=native -funroll-all-loops -fomit-frame-pointer -march=native -mtune=native -msse4 -ftree-vectorize -ftree-vectorizer-verbose=5 -ffast-math -funroll-loops -ftracer")
 set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -pthread -fno-strict-aliasing -fwrapv -fPIC -mtune=native -funroll-all-loops -fomit-frame-pointer -msse4 -ftree-vectorize -ffast-math -funroll-loops -ftracer")
 # XXX: had to remove `-march=native` for compiling python interface with pybind11
