@@ -1,18 +1,3 @@
-// The code to do cloud numbering
-// This code is rather procedural (=faster?)
-// Works on both MONC and UM data given the right parameters
-
-// Compile on MONSOON: g++ -pthread -fno-strict-aliasing -DNDEBUG -g -fwrapv -fPIC -I/opt/python/gnu/2.7.9/lib/python2.7/site-packages/scipy/weave/blitz -I/opt/cray/netcdf-hdf5parallel/4.3.2/CRAY/83/include   -I/opt/cray/hdf5/1.8.13/CRAY/83/include -c cpp_identify_seungbu.cpp -o cpp_identify_seungbu.o -pthread -O6 -march=native -mtune=native -funroll-all-loops -fomit-frame-pointer -march=native -mtune=native -msse4 -ftree-vectorize -ftree-vectorizer-verbose=5 -ffast-math -funroll-loops -ftracer
-// Link:  g++ -o cpp_identify_seungbu.exe cpp_identify_seungbu.o -L/opt/cray/netcdf-hdf5parallel/4.3.2/CRAY/83/lib -lnetcdf
-
-// Compile on my local system: g++ -pthread -fno-strict-aliasing -DNDEBUG -g -fwrapv -fPIC -I/usr/lib/python2.7/dist-packages/scipy/weave/blitz -I/usr/include/ -c cpp_identify_seungbu.cpp -o cpp_identify_seungbu.o -pthread -O6 -march=native -mtune=native -funroll-all-loops -fomit-frame-pointer -march=native -mtune=native -msse4 -ftree-vectorize -ftree-vectorizer-verbose=5 -ffast-math -funroll-loops -ftracer
-// Link: g++ -o cpp_identify_seungbu.exe cpp_identify_seungbu.o -L/usr/lib/ -lnetcdf
-
-// This is very recent code, and there are no publications with it yet. 
-// It basically works by first assigning each point that fulfils a masking criterion (e.g. each cloudy point) to a local maximum. 
-// The assignment to maxima is done through a steepest gradient approach. 
-// Subsequently, a merging algorithm is applied to get rid of the smaller local peaks.
-
 #include <stdlib.h>
 #include <stdio.h>
 #include <iostream>
@@ -20,122 +5,14 @@
 #include <stdint.h>
 #include "blitz/array.h"
 
+#include "common.h"
+#include "blitz_sort.h"
+#include "file_io.h"
+
+
 #define ERRCODE 2
 #define ERR(e) {printf("Error: %s\n", nc_strerror(e)); exit(ERRCODE);}
 
-// PROPERTIES OF INPUT
-static const int imax = 200;
-static const int jmax = 200;
-static const int kmax = 1;
-static const float inv_scaling_parameter=1.0/3200.0; // data conversion parameter
-                                                       // corresponding to scaling in pre-processing script
-static const bool lperiodic = true; // is the domain periodic?
-
-// PARAMETERS FOR CLUSTERING ALGORITHM
-static const float mincolratio = 0.7; // fractional height used for deciding whether to merge cols
-                                      // 0 corresponds to merging everything
-                                      // 1 corresponds to not merging (steepest gradient association
-                                      // with local maximum
-
-// PARAMETERS WHICH DETERMINE MEMORY FOOTPRINT
-// By what factor far can we make arrays smaller? (reduce memory footprint)
-static const int blobfac = 2; // number of blobs wrt number of points
-static const int borderfac = 2; // number of border points wrt number of points
-static const int colfac = 2; // number of cols wrt number of points
-
-typedef uint32_t indexint; //use unsigned array indices
-
-// fill a blitz array with "short integer" netcdf data
-void blitzncshort(int ncId, const char *nomVariable,
-blitz::Array<short,3> & tab)
-{
-  int status, varId, nbDims;
-  int *dimIds;
-  size_t start[] = {0,0,0};
-  size_t count[3];
-
-  printf("Loading `%s`...\n", nomVariable);
-
-  status = nc_inq_varid(ncId, nomVariable, &varId);
-  if (status != NC_NOERR)
-    std::cout << nomVariable << " is absent" << std::endl ;
-  else
-  {
-    status = nc_inq_varndims(ncId, varId, &nbDims);
-
-    if(nbDims != 3)
-    {
-      fprintf(stderr,"Error in data, the variable %s should have 3 dimensions\n", nomVariable);
-      exit(-1);
-    }
-
-    dimIds = new int[nbDims*sizeof(*dimIds)];
-
-    status = nc_inq_vardimid(ncId, varId, dimIds);
-
-    delete [] dimIds;
-
-    tab.resize(imax, jmax, kmax);
-
-    count[0] = imax ; count[1] = jmax; count[2] = kmax;
-    status = nc_get_vara_short(ncId, varId, start, count, tab.data());
-  }
-}
-
-// partitioning for the quicksort algorithm
-int partition(blitz::Array<int, 2> &a, int p, int r) {
-  int j, temp;
-  
-  int x = a(r,0);
-  int i = p -1;
-  
-  for(j = p;j<r;j++){
-    if(a(j,0)<= x)
-    {
-      i++;
-      temp = a(i,0);
-      a(i,0) = a(j,0);
-      a(j,0) = temp;
-      temp = a(i,1);
-      a(i,1) = a(j,1);
-      a(j,1) = temp;
-      temp = a(i,2);
-      a(i,2) = a(j,2);
-      a(j,2) = temp;
-      temp = a(i,3);
-      a(i,3) = a(j,3);
-      a(j,3) = temp;
-    }
-  }
-  temp = a(r,0);
-  a(r,0) = a(i +1,0);
-  a(i+1,0) = temp;
-  temp = a(r,1);
-  a(r,1) = a(i +1,1);
-  a(i+1,1) = temp;
-  temp = a(r,2);
-  a(r,2) = a(i +1,2);
-  a(i+1,2) = temp;
-  temp = a(r,3);
-  a(r,3) = a(i +1,3);
-  a(i+1,3) = temp;
-    
-  return i+1;
-}
-
-// actual quicksort algorithm
-void quick_sort(blitz::Array<int, 2> &a, int l, int r)
-{
-  int j;
-
-  if( l < r ) 
-  {
-    // divide and conquer
-    j = partition( a, l, r);
-    quick_sort( a, l, j-1);
-    quick_sort( a, j+1, r);
-  }
-}
 
 /** halo swap to get "inner domain values" into halos
  */
@@ -162,127 +39,6 @@ void halo_swap(blitz::Array<Type,3> &field) {
       }
     }
   }
-}
-
-int write_netcdf(blitz::Array<indexint,3> dataext) {
-    int retval; // error terurn value
-    int ncid; //netcdf ids (decided not to reuse these)
-    int varid; //variable ids (decided not to reuse these)
-
-    int x_dimid, y_dimid, z_dimid;
-    int dimids[3];
-
-   /* Always check the return code of every netCDF function call. In
-    * this example program, any retval which is not equal to NC_NOERR
-    * (0) will cause the program to print an error message and exit
-    * with a non-zero return code. */
-
-   /* Create the file. The NC_CLOBBER parameter tells netCDF to
-    * overwrite this file, if it already exists.*/
-   if ((retval = nc_create("output.nc",NC_CLOBBER|NC_NETCDF4, &ncid)))
-      ERR(retval);
-
-   /* Define the dimensions. NetCDF will hand back an ID for each. */
-   if ((retval = nc_def_dim(ncid, "x", imax, &x_dimid)))
-      ERR(retval);
-   if ((retval = nc_def_dim(ncid, "y", jmax, &y_dimid)))
-      ERR(retval);
-   if ((retval = nc_def_dim(ncid, "z", kmax, &z_dimid)))
-      ERR(retval);
-      
-   /* The dimids array is used to pass the IDs of the dimensions of
-    * the variable. */
-   dimids[0] = x_dimid;
-   dimids[1] = y_dimid;
-   dimids[2] = z_dimid;
-
-   /* Define the variable. The type of the variable in this case is
-    * NC_INT (4-byte integer). */
-   if ((retval = nc_def_var(ncid, "data", NC_UINT, 3, 
-          dimids, &varid)))
-      ERR(retval);
-
-   /* End define mode. This tells netCDF we are done defining
-    * metadata. */
-   if ((retval = nc_enddef(ncid)))
-      ERR(retval);
-
-   /* Write the pretend data to the file. Although netCDF supports
-    * reading and writing subsets of data, in this case we write all
-    * the data in one operation. */
-   
-   if ((retval = nc_put_var_uint(ncid, varid, dataext.data())))
-      ERR(retval);
-
-   /* Close the file. This frees up any internal netCDF resources
-    * associated with the file, and flushes any buffers. */
-   if ((retval = nc_close(ncid)))
-      ERR(retval);
-
-   printf("*** SUCCESS writing example file output.nc!\n");
-   return 0;
-}
-
-void load_mask(blitz::Array<bool,3> &maskext) {
-  int retval; // error return value
-  int ncid; //netcdf id
-
-  indexint counter; // counts cells with certain properties (used for sanity checks)
-
-  maskext=false;
-
-  // array that holds "cloud" mask as short (temporarily)
-  blitz::Array<short,3> maskshort(imax,jmax,kmax);
-
-  printf("Opening `mask_field.nc`\n");
-
-  /* Open the file. NC_NOWRITE tells netCDF we want read-only access
-   * to the file.*/
-  if ((retval = nc_open("mask_field.nc", NC_NOWRITE, &ncid)))
-    ERR(retval);
-
-  blitzncshort(ncid,"maskext",maskshort);
-  maskext.resize(maskshort.shape());
-
-  /* Close the file, freeing all resources. */
-  if ((retval = nc_close(ncid)))
-    ERR(retval);
-
-  // transfer mask elements to boolean and count them
-  counter=1;
-  for (int i=1; i<imax-1; ++i) {
-    for (int j=1; j<jmax-1; ++j) {
-      for (int k=0; k<kmax; ++k) {
-        if(maskshort(i,j,k)>0) {
-          maskext(i,j,k)=true;
-          counter=counter+1;
-        }
-      }
-    }
-  }
-  printf("number of cloudy cells +1 %d \n",counter); 
-
-  maskshort.free();
-}
-
-void load_field(blitz::Array<short,3> &fieldext) {
-  int retval; // error return value
-  int ncid; //netcdf id
-
-  fieldext=0;
-
-  printf("Opening `mask_field.nc`\n");
-
-  /* Open the file. NC_NOWRITE tells netCDF we want read-only access
-   * to the file.*/
-  if ((retval = nc_open("mask_field.nc", NC_NOWRITE, &ncid)))
-    ERR(retval);
-
-  blitzncshort(ncid,"fieldext",fieldext);
-
-  /* Close the file, freeing all resources. */
-  if ((retval = nc_close(ncid)))
-    ERR(retval);
 }
 
 
@@ -1282,20 +1038,4 @@ void find_objects(
   direction.free();
 
   merge_smaller_peaks(dataext, fieldext, cloudcounter);
-}
-
-
-// MAIN PROGRAM    
-int main() {
-  // array that holds the mask as boolean (including halo cells)
-  blitz::Array<bool,3> maskext;
-
-  // array that holds field values
-  blitz::Array<short,3> fieldext;
-
-  // array that hold actual numbers
-  blitz::Array<indexint,3> dataext;
-  find_objects(fieldext, maskext, dataext);
-
-  write_netcdf(dataext);
 }

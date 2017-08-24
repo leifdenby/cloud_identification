@@ -20,6 +20,7 @@ set (NETCDF_CXX "YES")
 set (NETCDF_C "YES")
 FIND_PACKAGE(NetCDF REQUIRED)
 
+
 find_package(python)
 find_python_module(weave)
 find_python_module(scipy.weave)
@@ -34,10 +35,26 @@ elseif(PY_SCIPY.WEAVE)
   set(BLITZ_INCLUDES ${PY_SCIPY.WEAVE}/blitz)
 endif()
 
+set(SOURCE_DIR "src")
 
 
-include_directories(${netCDF_INCLUDE_DIR} ${BLITZ_INCLUDES})
+include_directories(${SOURCE_DIR} ${netCDF_INCLUDE_DIR} ${BLITZ_INCLUDES})
 set(HEADER_FILES ${NETCDF_INCLUDES})
+set(SOURCES ${SOURCE_DIR})
+
+
+# put all cloud identification code in library so that we link against this
+# both for cli and for python module
+add_library(cloud_identification
+  src/cloud_identification.cpp
+  src/file_io.cpp
+  src/blitz_sort.cpp
+)
+
+
+add_executable(main src/main.cpp)
+target_link_libraries(main cloud_identification ${NETCDF_LIBRARIES})
+
 
 # For debugging cmake variables:
 #get_cmake_property(_variableNames VARIABLES)
@@ -45,6 +62,3 @@ set(HEADER_FILES ${NETCDF_INCLUDES})
     #message(STATUS "${_variableName}=${${_variableName}}")
 #endforeach()
 #set(CMAKE_VERBOSE_MAKEFILE ON)
-
-add_executable(main cpp_identify_seungbu.cpp)
-target_link_libraries(main ${NETCDF_LIBRARIES})
