@@ -57,7 +57,8 @@ add_executable(main src/main.cpp)
 target_link_libraries(main cloud_identification ${NETCDF_LIBRARIES})
 
 add_subdirectory(lib/pybind11)
-pybind11_add_module(python_cpp_example src/math.cpp "${SOURCE_DIR}/bindings.cpp")
+pybind11_add_module(py_cloud_identification src/math.cpp "${SOURCE_DIR}/bindings.cpp")
+target_link_libraries(py_cloud_identification cloud_identification ${NETCDF_LIBRARIES})
 
 
 # For debugging cmake variables:

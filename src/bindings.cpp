@@ -1,7 +1,8 @@
-#include "math.hpp"
 #include <pybind11/pybind11.h>
 #include <pybind11/numpy.h>
 #include <blitz/array.h>
+#include "cloud_identification.h"
+#include "common.h"
 
 namespace py = pybind11;
 
@@ -43,48 +44,50 @@ void blitz_add(
 }
 
 
-py::array_t<double> add_arrays(py::array_t<double> a, py::array_t<double> b)
+py::array_t<indexint> number_objects(py::array_t<short> scalar_field, py::array_t<bool> mask)
 {
-  const size_t ndim = 2;
+  const size_t ndim = 3;
 
-  py::buffer_info info_a = a.request();
-  py::buffer_info info_b = b.request();
+  // TODO:
+  // - do rescaling to short int in wrapper
+  // - remove fixed size set via common.h so that shape is determined by call from python
 
-  if (info_a.ndim != ndim || info_b.ndim != ndim) {
+  py::buffer_info info_scalar_field = scalar_field.request();
+  py::buffer_info info_mask = mask.request();
+
+  if (info_scalar_field.ndim != ndim || info_mask.ndim != ndim) {
     throw std::runtime_error("Inputs should be 2D");
   }
 
-  for (int n=0; n < info_a.ndim; n++) {
-    if (info_a.shape[n] != info_b.shape[n]) {
+  for (int n=0; n < info_scalar_field.ndim; n++) {
+    if (info_scalar_field.shape[n] != info_mask.shape[n]) {
       throw std::runtime_error("Input shapes must be equal");
     }
   }
 
-  py::array_t<double> result = py::array(py::buffer_info(
+  py::array_t<indexint> result = py::array(py::buffer_info(
     nullptr,            /* Pointer to data (nullptr -> ask NumPy to allocate!) */
-    sizeof(double),     /* Size of one item */
-    info_a.format, /* Buffer format */
-    info_a.ndim,          /* How many dimensions? */
-    info_a.shape,  /* Number of elements for each dimension */
-    info_a.strides  /* Strides for each dimension */
+    sizeof(indexint),     /* Size of one item */
+    info_scalar_field.format, /* Buffer format */
+    info_scalar_field.ndim,          /* How many dimensions? */
+    info_scalar_field.shape,  /* Number of elements for each dimension */
+    info_scalar_field.strides  /* Strides for each dimension */
   ));
 
 
-  blitz::Array<double,ndim> a_blitz = py_array_to_blitz<double,ndim>(a);
-  blitz::Array<double,ndim> b_blitz = py_array_to_blitz<double,ndim>(b);
-  blitz::Array<double,ndim> c_blitz = py_array_to_blitz<double,ndim>(result);
+  blitz::Array<short,ndim> scalar_field_blitz = py_array_to_blitz<short,ndim>(scalar_field);
+  blitz::Array<bool,ndim> mask_blitz = py_array_to_blitz<bool,ndim>(mask);
+  blitz::Array<indexint,ndim> result_blitz = py_array_to_blitz<indexint,ndim>(result);
 
-  blitz_add<double,ndim>(a_blitz, b_blitz, c_blitz);
+  find_objects(scalar_field_blitz, mask_blitz, result_blitz);
 
   return result;
 }    
 
-PYBIND11_PLUGIN(python_cpp_example)
+PYBIND11_PLUGIN(py_cloud_identification)
 {
-    py::module m("python_cpp_example");
-    m.def("add_arrays", &add_arrays, "Adding two numpy arrays");
-
-    m.def("add", &add);
-    m.def("subtract", &subtract);
+    py::module m("py_cloud_identification");
+    m.def("number_objects", &number_objects, "Identify individual cloud objects in regions defined by mask",
+          py::arg("scalar_field"), py::arg("mask"));
     return m.ptr();
 }
