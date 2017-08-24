@@ -7,14 +7,15 @@ set(CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} "${CMAKE_SOURCE_DIR}/cmake/Modules/")
 set(BUILD_SHARED_LIBS "YES")
 
 #set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -pthread -fno-strict-aliasing -DNDEBUG -g -fwrapv -fPIC -mtune=native -funroll-all-loops -fomit-frame-pointer -march=native -mtune=native -msse4 -ftree-vectorize -ftree-vectorizer-verbose=5 -ffast-math -funroll-loops -ftracer")
-set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -pthread -fno-strict-aliasing -fwrapv -fPIC -mtune=native -funroll-all-loops -fomit-frame-pointer -march=native -mtune=native -msse4 -ftree-vectorize -ffast-math -funroll-loops -ftracer")
+set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -pthread -fno-strict-aliasing -fwrapv -fPIC -mtune=native -funroll-all-loops -fomit-frame-pointer -msse4 -ftree-vectorize -ffast-math -funroll-loops -ftracer")
+# XXX: had to remove `-march=native` for compiling python interface with pybind11
 
 if(NOT CMAKE_BUILD_TYPE)
-   set(CMAKE_BUILD_TYPE Release FORCE)
+   set(CMAKE_BUILD_TYPE Release)
 endif()
 
 set(CMAKE_CXX_FLAGS_DEBUG "${CMAKE_CXX_FLAGS_DEBUG} -g -DDEBUG_CHECK_LIMITS -Wall")
-set(CMAKE_CXX_FLAGS_RELEASE "${CMAKE_CXX_FLAGS_RELEASE} -DNDEBUG -Wall")
+set(CMAKE_CXX_FLAGS_RELEASE "${CMAKE_CXX_FLAGS_RELEASE} -DNDEBUG")
 
 set (NETCDF_CXX "YES")
 set (NETCDF_C "YES")
@@ -39,8 +40,6 @@ set(SOURCE_DIR "src")
 
 
 include_directories(${SOURCE_DIR} ${netCDF_INCLUDE_DIR} ${BLITZ_INCLUDES})
-set(HEADER_FILES ${NETCDF_INCLUDES})
-set(SOURCES ${SOURCE_DIR})
 
 
 # put all cloud identification code in library so that we link against this
@@ -54,6 +53,9 @@ add_library(cloud_identification
 
 add_executable(main src/main.cpp)
 target_link_libraries(main cloud_identification ${NETCDF_LIBRARIES})
+
+add_subdirectory(lib/pybind11)
+pybind11_add_module(python_cpp_example src/math.cpp "${SOURCE_DIR}/bindings.cpp")
 
 
 # For debugging cmake variables:
