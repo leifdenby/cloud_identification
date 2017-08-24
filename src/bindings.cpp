@@ -28,33 +28,47 @@ void blitz_add(
   blitz::Array<T,N> &c
 ) {
 
-  for (int i=0; i < a.size(); i++) {
-    c(i) = a(i) + b(i);
+  if (N == 1) {
+    for (int i=0; i < a.size(); i++) {
+      c(i) = a(i) + b(i);
+    }
+  }
+  else if (N == 2) {
+    for (int i=0; i < a.shape()[0]; i++) {
+      for (int j=0; j < a.shape()[1]; j++) {
+        c(i,j) = a(i,j) + b(i,j);
+      }
+    }
   }
 }
 
 
 py::array_t<double> add_arrays(py::array_t<double> a, py::array_t<double> b)
 {
+  const size_t ndim = 2;
+
   py::buffer_info info_a = a.request();
   py::buffer_info info_b = b.request();
 
-  if ((info_a.ndim != 1) || (info_b.ndim != 1))
-    throw std::runtime_error("Number of dimensions must be one");
+  if (info_a.ndim != ndim || info_b.ndim != ndim) {
+    throw std::runtime_error("Inputs should be 2D");
+  }
 
-  if (info_a.shape[0] != info_b.shape[0])
-    throw std::runtime_error("Input shapes must be equal");
+  for (int n=0; n < info_a.ndim; n++) {
+    if (info_a.shape[n] != info_b.shape[n]) {
+      throw std::runtime_error("Input shapes must be equal");
+    }
+  }
 
-  //std::vector<double> ret(info_a.shape[0]);
-  //for (unsigned int idx = 0; idx < info_a.shape[0]; idx++)
-    //ret[idx] = ((double*)info_a.ptr)[idx] + ((double*)info_b.ptr)[idx];
-    //
+  py::array_t<double> result = py::array(py::buffer_info(
+    nullptr,            /* Pointer to data (nullptr -> ask NumPy to allocate!) */
+    sizeof(double),     /* Size of one item */
+    info_a.format, /* Buffer format */
+    info_a.ndim,          /* How many dimensions? */
+    info_a.shape,  /* Number of elements for each dimension */
+    info_a.strides  /* Strides for each dimension */
+  ));
 
-  py::array_t<double> result = py::array_t<double>(info_a.size);
-
-  std::vector<size_t> strides = {sizeof(double)};
-  std::vector<size_t> shape = {info_a.shape[0]};
-  const size_t ndim = 1;
 
   blitz::Array<double,ndim> a_blitz = py_array_to_blitz<double,ndim>(a);
   blitz::Array<double,ndim> b_blitz = py_array_to_blitz<double,ndim>(b);
