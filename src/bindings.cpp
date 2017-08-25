@@ -1,10 +1,13 @@
 #include <pybind11/pybind11.h>
 #include <pybind11/numpy.h>
 #include <blitz/array.h>
+#include <limits.h>
+
 #include "cloud_identification.h"
 #include "common.h"
 
 namespace py = pybind11;
+
 
 template<class T, int N>
 blitz::Array<T,N> py_array_to_blitz(py::array_t<T> &a) {
@@ -22,40 +25,16 @@ blitz::Array<T,N> py_array_to_blitz(py::array_t<T> &a) {
   return blitz::Array<T,N>((T*) info_a.ptr, shape, strides, blitz::neverDeleteData);
 }
 
-template<class T, int N>
-void blitz_add(
-  const blitz::Array<T,N> &a,
-  const blitz::Array<T,N> &b,
-  blitz::Array<T,N> &c
-) {
 
-  if (N == 1) {
-    for (int i=0; i < a.size(); i++) {
-      c(i) = a(i) + b(i);
-    }
-  }
-  else if (N == 2) {
-    for (int i=0; i < a.shape()[0]; i++) {
-      for (int j=0; j < a.shape()[1]; j++) {
-        c(i,j) = a(i,j) + b(i,j);
-      }
-    }
-  }
-}
-
-
-py::array_t<indexint> number_objects(py::array_t<short> scalar_field, py::array_t<bool> mask)
+py::array_t<indexint> number_objects(py::array_t<double> scalar_field, py::array_t<bool> mask)
 {
   const size_t ndim = 3;
-
-  // TODO:
-  // - do rescaling to short int in wrapper
 
   py::buffer_info info_scalar_field = scalar_field.request();
   py::buffer_info info_mask = mask.request();
 
   if (info_scalar_field.ndim != ndim || info_mask.ndim != ndim) {
-    throw std::runtime_error("Inputs should be 2D");
+    throw std::runtime_error("Inputs should be 3D");
   }
 
   for (int n=0; n < info_scalar_field.ndim; n++) {
@@ -74,14 +53,29 @@ py::array_t<indexint> number_objects(py::array_t<short> scalar_field, py::array_
   ));
 
 
-  blitz::Array<short,ndim> scalar_field_blitz = py_array_to_blitz<short,ndim>(scalar_field);
+  blitz::Array<double,ndim> scalar_field_blitz = py_array_to_blitz<double,ndim>(scalar_field);
   blitz::Array<bool,ndim> mask_blitz = py_array_to_blitz<bool,ndim>(mask);
   blitz::Array<indexint,ndim> result_blitz = py_array_to_blitz<indexint,ndim>(result);
 
-  find_objects(scalar_field_blitz, mask_blitz, result_blitz);
+  double s_min = min(scalar_field_blitz);
+  double s_max = max(scalar_field_blitz);
+  double s_range = s_max - s_min;
+  double ds = s_range/double(SHRT_MAX - SHRT_MIN);
+  blitz::TinyVector<int,ndim> shape = scalar_field_blitz.shape();
+
+  blitz::Array<short,ndim> rescaled_scalar_field_blitz = blitz::Array<short,ndim>(scalar_field_blitz.shape());
+  for (int i=0; i<shape[0]; i++) {
+    for (int j=0; j<shape[1]; j++) {
+      for (int k=0; k<shape[2]; k++) {
+        rescaled_scalar_field_blitz(i,j,k) = SHRT_MIN + (short)((scalar_field_blitz(i,j,k) - s_min)/ds);
+      }
+    }
+  }
+
+  find_objects(rescaled_scalar_field_blitz, mask_blitz, result_blitz);
 
   return result;
-}    
+}
 
 PYBIND11_PLUGIN(py_cloud_identification)
 {
