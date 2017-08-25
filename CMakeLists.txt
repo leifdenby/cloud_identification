@@ -21,6 +21,7 @@ set(CMAKE_CXX_FLAGS_RELEASE "${CMAKE_CXX_FLAGS_RELEASE} -DNDEBUG")
 
 set (NETCDF_CXX "YES")
 set (NETCDF_C "YES")
+set (NETCDF_NC4 "YES")
 FIND_PACKAGE(NetCDF REQUIRED)
 
 
@@ -41,7 +42,7 @@ endif()
 set(SOURCE_DIR "src")
 
 
-include_directories(${SOURCE_DIR} ${netCDF_INCLUDE_DIR} ${BLITZ_INCLUDES})
+include_directories(${SOURCE_DIR} ${NETCDF_INCLUDES} ${BLITZ_INCLUDES})
 
 
 # put all cloud identification code in library so that we link against this
@@ -62,8 +63,8 @@ target_link_libraries(py_cloud_identification cloud_identification ${NETCDF_LIBR
 
 
 # For debugging cmake variables:
-#get_cmake_property(_variableNames VARIABLES)
-#foreach (_variableName ${_variableNames})
-    #message(STATUS "${_variableName}=${${_variableName}}")
-#endforeach()
-#set(CMAKE_VERBOSE_MAKEFILE ON)
+get_cmake_property(_variableNames VARIABLES)
+foreach (_variableName ${_variableNames})
+    message(STATUS "${_variableName}=${${_variableName}}")
+endforeach()
+set(CMAKE_VERBOSE_MAKEFILE ON)
