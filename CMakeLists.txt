@@ -63,8 +63,8 @@ target_link_libraries(py_cloud_identification cloud_identification ${NETCDF_LIBR
 
 
 # For debugging cmake variables:
-get_cmake_property(_variableNames VARIABLES)
-foreach (_variableName ${_variableNames})
-    message(STATUS "${_variableName}=${${_variableName}}")
-endforeach()
-set(CMAKE_VERBOSE_MAKEFILE ON)
+#get_cmake_property(_variableNames VARIABLES)
+#foreach (_variableName ${_variableNames})
+    #message(STATUS "${_variableName}=${${_variableName}}")
+#endforeach()
+#set(CMAKE_VERBOSE_MAKEFILE ON)
