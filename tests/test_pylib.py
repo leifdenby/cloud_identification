@@ -11,7 +11,7 @@ sys.path.append(build_path)
 
 import numpy as np
 
-import py_cloud_identification
+import cloud_identification
 from base import BaseTestClass
 
 
@@ -28,4 +28,4 @@ class TestPythonInterface(BaseTestClass):
             d = data
             m = mask
 
-        return py_cloud_identification.number_objects(scalar_field=d, mask=m)
+        return cloud_identification.number_objects(scalar_field=d, mask=m)

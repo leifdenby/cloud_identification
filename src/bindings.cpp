@@ -77,9 +77,9 @@ py::array_t<indexint> number_objects(py::array_t<double> scalar_field, py::array
   return result;
 }
 
-PYBIND11_PLUGIN(py_cloud_identification)
+PYBIND11_PLUGIN(cloud_identification)
 {
-    py::module m("py_cloud_identification");
+    py::module m("cloud_identification");
     m.def("number_objects", &number_objects, "Identify individual cloud objects in regions defined by mask",
           py::arg("scalar_field"), py::arg("mask"));
     return m.ptr();

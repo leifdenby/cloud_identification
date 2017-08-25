@@ -47,7 +47,7 @@ include_directories(${SOURCE_DIR} ${NETCDF_INCLUDES} ${BLITZ_INCLUDES})
 
 # put all cloud identification code in library so that we link against this
 # both for cli and for python module
-add_library(cloud_identification
+add_library(cloud_identification_core
   src/cloud_identification.cpp
   src/file_io.cpp
   src/blitz_sort.cpp
@@ -55,13 +55,13 @@ add_library(cloud_identification
 
 
 add_executable(main src/main.cpp)
-target_link_libraries(main cloud_identification ${NETCDF_LIBRARIES})
+target_link_libraries(main cloud_identification_core ${NETCDF_LIBRARIES})
 
 add_subdirectory(lib/pybind11)
-pybind11_add_module(py_cloud_identification
+pybind11_add_module(cloud_identification
   ${SOURCE_DIR}/bindings.cpp
 )
-target_link_libraries(py_cloud_identification cloud_identification ${NETCDF_LIBRARIES})
+target_link_libraries(cloud_identification cloud_identification_core ${NETCDF_LIBRARIES})
 
 
 # For debugging cmake variables:
@@ -69,4 +69,4 @@ target_link_libraries(py_cloud_identification cloud_identification ${NETCDF_LIBR
 #foreach (_variableName ${_variableNames})
     #message(STATUS "${_variableName}=${${_variableName}}")
 #endforeach()
-set(CMAKE_VERBOSE_MAKEFILE ON)
+#set(CMAKE_VERBOSE_MAKEFILE ON)
