@@ -32,7 +32,7 @@ Compile is handled with cmake. The required dependencies are:
 If this is available through `module` load with
 
 ```bash
-module load netcdf
+module load netcdf4
 ```
 
 **2. blitz**
@@ -47,6 +47,17 @@ or through `weave`
 
 ```bash
 pip install weave
+```
+
+3. A compiler with c++11 support
+
+The python interface for the cloud identification library is written using
+[pybind11](https://github.com/pybind/pybind11) which requires c++11
+functionality. GCC 4.8 support this, on `cloud9@leeds.ac.uk` this may be loaded
+with
+
+```
+module load gnu/4.8.1
 ```
 
 Once these are installed compile with cmake:
