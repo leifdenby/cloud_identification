@@ -6,5 +6,6 @@ build/
 *.so
 .eggs/
 *.egg-info/
+dist/
 
 __pycache__/
