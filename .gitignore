@@ -2,4 +2,9 @@ build/
 
 .*.sw*
 .cache/
+*.pyc
+*.so
+.eggs/
+*.egg-info/
+
 __pycache__/
