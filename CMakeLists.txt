@@ -18,6 +18,7 @@ set(CMAKE_CXX_FLAGS_RELEASE "${CMAKE_CXX_FLAGS_RELEASE} -DNDEBUG -Wall")
 
 set (NETCDF_CXX "YES")
 set (NETCDF_C "YES")
+set (NETCDF_NC4 "YES")
 FIND_PACKAGE(NetCDF REQUIRED)
 
 
@@ -38,7 +39,7 @@ endif()
 set(SOURCE_DIR "src")
 
 
-include_directories(${SOURCE_DIR} ${netCDF_INCLUDE_DIR} ${BLITZ_INCLUDES})
+include_directories(${SOURCE_DIR} ${NETCDF_INCLUDES} ${BLITZ_INCLUDES})
 set(HEADER_FILES ${NETCDF_INCLUDES})
 set(SOURCES ${SOURCE_DIR})
 
@@ -57,8 +58,8 @@ target_link_libraries(main cloud_identification ${NETCDF_LIBRARIES})
 
 
 # For debugging cmake variables:
-#get_cmake_property(_variableNames VARIABLES)
-#foreach (_variableName ${_variableNames})
-    #message(STATUS "${_variableName}=${${_variableName}}")
-#endforeach()
-#set(CMAKE_VERBOSE_MAKEFILE ON)
+get_cmake_property(_variableNames VARIABLES)
+foreach (_variableName ${_variableNames})
+    message(STATUS "${_variableName}=${${_variableName}}")
+endforeach()
+set(CMAKE_VERBOSE_MAKEFILE ON)
