@@ -21,7 +21,7 @@ blitz::Array<short,3> & tab)
   {
     int *dimIds;
     size_t start[] = {0,0,0};
-    size_t count[3];
+    size_t dim_lengths[3];
 
     status = nc_inq_varndims(ncId, varId, &nbDims);
 
@@ -32,20 +32,39 @@ blitz::Array<short,3> & tab)
     }
 
     dimIds = new int[nbDims*sizeof(*dimIds)];
-
     status = nc_inq_vardimid(ncId, varId, dimIds);
+
+    if (status != NC_NOERR) {
+      ERR(status);
+    }
+
+    for (int n=0; n<3; n++) {
+      nc_inq_dimlen(ncId, dimIds[n], &dim_lengths[n]);
+
+      if (status != NC_NOERR) {
+        ERR(status);
+      }
+    }
 
     delete [] dimIds;
 
-    tab.resize(imax, jmax, kmax);
+    tab.resize(dim_lengths[0], dim_lengths[1], dim_lengths[2]);
 
-    count[0] = imax ; count[1] = jmax; count[2] = kmax;
-    status = nc_get_vara_short(ncId, varId, start, count, tab.data());
+    status = nc_get_vara_short(ncId, varId, start, dim_lengths, tab.data());
+    if (status != NC_NOERR) {
+      ERR(status);
+    }
   }
 }
 
 
 int write_netcdf(blitz::Array<indexint,3> dataext) {
+  blitz::TinyVector<int,3> shape = dataext.shape();
+  int imax = shape[0];
+  int jmax = shape[1];
+  int kmax = shape[2];
+
+
     int retval; // error terurn value
     int ncid; //netcdf ids (decided not to reuse these)
     int varid; //variable ids (decided not to reuse these)
@@ -114,7 +133,7 @@ void load_mask(blitz::Array<bool,3> &maskext) {
   maskext=false;
 
   // array that holds "cloud" mask as short (temporarily)
-  blitz::Array<short,3> maskshort(imax,jmax,kmax);
+  blitz::Array<short,3> maskshort;
 
   printf("Opening `mask_field.nc`\n");
 
@@ -129,6 +148,11 @@ void load_mask(blitz::Array<bool,3> &maskext) {
   /* Close the file, freeing all resources. */
   if ((retval = nc_close(ncid)))
     ERR(retval);
+
+  blitz::TinyVector<int,3> shape = maskshort.shape();
+  int imax = shape[0];
+  int jmax = shape[1];
+  int kmax = shape[2];
 
   // transfer mask elements to boolean and count them
   counter=1;

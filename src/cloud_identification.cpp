@@ -18,6 +18,11 @@
  */
 template <typename Type>
 void halo_swap(blitz::Array<Type,3> &field) {
+  blitz::TinyVector<int,3> shape = field.shape();
+  int imax = shape[0];
+  int jmax = shape[1];
+  int kmax = shape[2];
+
   for (int i=0; i<imax; ++i) {
     for (int k=0; k<kmax; ++k) {
       if(field(i,jmax-2,k)==true) {
@@ -50,6 +55,10 @@ void identify_steepest_ascent(
   const blitz::Array<short,3> &fieldext,
   blitz::Array<char, 3> direction
   ) {
+  blitz::TinyVector<int,3> shape = fieldext.shape();
+  int imax = shape[0];
+  int jmax = shape[1];
+  int kmax = shape[2];
 
   char tempdirection; // direction of steepest ascent temp-vars are used in inner loops
   int tempmax,tempfield; // used in inner loop
@@ -133,6 +142,11 @@ void assign_to_local_maxima(
   const blitz::Array<char,3> direction,
   int *cloudcounter
 ) {
+  blitz::TinyVector<int,3> shape = maskext.shape();
+  int imax = shape[0];
+  int jmax = shape[1];
+  int kmax = shape[2];
+
   int itarget,jtarget,ktarget; //calculating back target i,j,k,l that corresponds to maxima
   char tempdirection; // direction of steepest ascent temp-vars are used in inner loops
 
@@ -264,6 +278,11 @@ void init_output(
   blitz::Array<bool,    3> &maskext,
   blitz::Array<indexint,3> &dataext
 ) {
+  blitz::TinyVector<int,3> shape = maskext.shape();
+  int imax = shape[0];
+  int jmax = shape[1];
+  int kmax = shape[2];
+
   dataext=0;
 
   // initial numbering
@@ -286,6 +305,11 @@ void identify_borders(
     indexint *borderfield_counter,
     const int cloudcounter
 ) {
+  blitz::TinyVector<int,3> shape = dataext.shape();
+  int imax = shape[0];
+  int jmax = shape[1];
+  int kmax = shape[2];
+
     int ltarget; //calculating back target i,j,k,l that corresponds to maxima
     bool moreswaps; // used to check if all identities have been assigned, or further checking necessary
 
@@ -671,6 +695,11 @@ void find_cols_on_borders(
     blitz::Array<int,2> &coldata,
     indexint borderfield_counter
 ) {
+  blitz::TinyVector<int,3> shape = dataext.shape();
+  int imax = shape[0];
+  int jmax = shape[1];
+  int kmax = shape[2];
+
     int colindex; // col index (to be calculated)
 
     int nrb; // nuber of borders temporary variables
@@ -767,13 +796,17 @@ void merge_along_cols(
   const indexint cloudcounter,
   const indexint borderfield_counter
 ) {
+  blitz::TinyVector<int,3> shape = dataext.shape();
+  int imax = shape[0];
+  int jmax = shape[1];
+  int kmax = shape[2];
+
     bool moreswaps; // used to check if all identities have been assigned, or further checking necessary
 
     int cld1,cld2;
     
     // array which points to the "parent cloud"             
-    long blobindex;
-    blobindex=(long(imax)*long(jmax)*long(kmax))/long(blobfac);
+    long blobindex = (long(fieldext.size()))/long(blobfac);
     blitz::Array<int,1> targetcld(blobindex);
     blitz::Array<short,1> blobmins(blobindex);
     blitz::Array<short,1> blobmaxs(blobindex);
@@ -954,8 +987,8 @@ void merge_smaller_peaks(
   const int cloudcounter
 ) {
 
-  long borderindex;
-  borderindex=(long(imax)*long(jmax)*long(kmax))/long(borderfac);
+  long borderindex = long(dataext.size())/long(borderfac);
+
   blitz::Array<int,1> borderfield(borderindex); // identity of the border (related to i,j,k and direction) 
   blitz::Array<indexint,1> assocfield(borderindex); // identy of border from the neighbouring grid vell
   indexint borderfield_counter = 1; // counts cells with certain properties (used for sanity checks)
@@ -964,8 +997,7 @@ void merge_smaller_peaks(
 
   // initialise array which holds data on cols
   // their heights and the associated "clouds"
-  long colmax;
-  colmax=(long(imax)*long(jmax)*long(kmax))/long(colfac);            
+  long colmax = (long(dataext.size()))/long(colfac);
   blitz::Array<int,2> coldata(colmax,4);
   coldata=-2147483648; // lowest possible value
 

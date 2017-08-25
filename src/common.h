@@ -4,9 +4,6 @@
 #define CLOUD_IDENTIFICATION_COMMON_H 1
 
 // PROPERTIES OF INPUT
-static const int imax = 200;
-static const int jmax = 200;
-static const int kmax = 1;
 static const float inv_scaling_parameter=1.0/3200.0; // data conversion parameter
                                                        // corresponding to scaling in pre-processing script
 static const bool lperiodic = true; // is the domain periodic?

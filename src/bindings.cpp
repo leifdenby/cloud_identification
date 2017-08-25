@@ -50,7 +50,6 @@ py::array_t<indexint> number_objects(py::array_t<short> scalar_field, py::array_
 
   // TODO:
   // - do rescaling to short int in wrapper
-  // - remove fixed size set via common.h so that shape is determined by call from python
 
   py::buffer_info info_scalar_field = scalar_field.request();
   py::buffer_info info_mask = mask.request();
