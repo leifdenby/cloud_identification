@@ -36,6 +36,16 @@ class BaseTestClass(object):
         assert len(np.unique(d_out)) == 3
 
 
+    def test_circle_domain_edge_x_periodic_scalar_field(self):
+        x, y = self.get_grid()
+
+        d = 1. - np.cos(x/10)
+        m = create_circular_mask(x, y, x_offset=lx/2.)
+
+        d_out = self.run_classifier(data=d, mask=m)
+        assert len(np.unique(d_out)) == 2
+
+
     def test_one_circle_y_periodic_scalar_field(self):
         x, y = self.get_grid()
 
