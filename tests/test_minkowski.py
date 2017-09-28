@@ -19,15 +19,22 @@ def _check_func_values(test_data):
             warnings.warn("`{}` not defined for test".format(func_name))
         else:
             func = getattr(minkowski, func_name)
-            assert func(m) == test_data.get(func_name)
+            assert np.all(np.array(func(m)) == np.array(test_data.get(func_name)))
 
         cpp_func = getattr(cloud_identification, func_name, None)
 
         if cpp_func is None:
             warnings.warn("Function `{}` not defined in Minkowski cpp interface".format(func_name))
         else:
-            assert cpp_func(m) == test_data.get(func_name)
+            assert np.all(cpp_func(m) == np.array(test_data.get(func_name)))
 
+        scales_fn_py = minkowski.topological_scales
+        scales_fn_cpp = cloud_identification.topological_scales
+
+        dx = 25.0
+        scales_py = scales_fn_py(m, dx)
+        scales_cpp = scales_fn_cpp(m, dx)
+        assert np.all(np.abs(scales_py - scales_cpp) < 10*np.finfo(scales_cpp.dtype).eps)
 
 def test_cube():
     test_data = dict(
@@ -54,6 +61,62 @@ def test_cube():
         N2=6,
         N1=12,
         N0=8,
+    )
+    _check_func_values(test_data)
+
+def test_two_cubes():
+    test_data = dict(
+        mask = parse_data_str("""
+        0 0 0 0
+        0 0 0 0
+        0 0 0 0
+        0 0 0 0
+        0 0 0 0
+
+        0 0 0 0
+        0 0 0 0
+        0 1 2 0
+        0 0 0 0
+        0 0 0 0
+
+        0 0 0 0
+        0 0 0 0
+        0 0 0 0
+        0 0 0 0
+        0 0 0 0
+        """, shape=(3, 5, 4)),
+        N3=[1,1],
+        N2=[6,6],
+        N1=[12,12],
+        N0=[8,8],
+    )
+    _check_func_values(test_data)
+
+def test_three_cubes():
+    test_data = dict(
+        mask = parse_data_str("""
+        0 0 0 0
+        0 0 0 0
+        0 0 0 0
+        0 0 0 0
+        0 0 0 0
+
+        0 0 0 0
+        0 0 3 0
+        0 1 2 0
+        0 0 0 0
+        0 0 0 0
+
+        0 0 0 0
+        0 0 0 0
+        0 0 0 0
+        0 0 0 0
+        0 0 0 0
+        """, shape=(3, 5, 4)),
+        N3=[1,1,1],
+        N2=[6,6,6],
+        N1=[12,12,12],
+        N0=[8,8,8],
     )
     _check_func_values(test_data)
 
@@ -84,7 +147,6 @@ def test_rectangle():
         N0=12,
     )
     _check_func_values(test_data)
-
 
 def test_block():
     test_data = dict(
@@ -144,4 +206,4 @@ def test_t_shape():
 
 
 if __name__ == "__main__":
-    test_rectangle()
+    test_two_cubes()

@@ -214,101 +214,38 @@ namespace minkowski {
   }
 
 
-  //def N2(m):
-  //"""
-  //Number of faces
-  //"""
-  //n_faces = np.zeros_like(np.unique(m))
 
-  //nx, ny, nz = m.shape
+  /** Compute characteristic thickness, width, length and genus for each
+   * labelled object in 3D using Minkowski functionals
+   */
+  blitz::Array<float,2> topological_scales(blitz::Array<int,3> &labels, float dx) {
+    int N_labels = max(labels);
 
-  //dirs = [
-  //np.array([0, 0, 1]),
-  //np.array([0, 0, -1]),
-  //np.array([0, 1, 0]),
-  //np.array([0, -1, 0]),
-  //np.array([1, 0, 0]),
-  //np.array([-1, 0, 0]),
-  //]
+    blitz::Array<float,1> n0(N_labels), n1(N_labels), n2(N_labels), n3(N_labels);
+    n0 = blitz::cast<float>(N0(labels));
+    n1 = blitz::cast<float>(N1(labels));
+    n2 = blitz::cast<float>(N2(labels));
+    n3 = blitz::cast<float>(N3(labels));
 
-  //def get_item(v, pos):
-  //return m[pos[0]%nx, pos[1]%ny, pos[2]%nz]
+    blitz::Array<float,1> V0(N_labels), V1(N_labels), V2(N_labels), V3(N_labels);
+    V0 = n3;
+    V1 = 2.0*(n2-3.0*n3)/(9.0*dx);
+    V2 = 2.0*(n1-2*n2+3*n3)/(9.0*dx*dx);
+    V3 = (n0-n1+n2-n3)/(dx*dx*dx);
 
+    blitz::Array<float,1> thickness(N_labels), width(N_labels), length(N_labels), genus(N_labels);
 
-  //for i in range(nx):
-  //for j in range(ny):
-  //for k in range(nz):
-  //pos = np.array([i, j, k])
-  //m_ = m[tuple(pos)] 
-  //if m_ == 0:
-  //# skip calculating total faces of unlabelled region
-  //continue
+    thickness = abs(V0/(2.0*V1));
+    width =  abs(2.0*V1/(3.14159*V2));
+    length =  abs(dx*dx*dx*3.0*V2/4.0);
+    genus = 1.0-0.5*(n0-n1+n2-n3);
 
-  //for d in dirs:
-  //if m_ != get_item(m, pos + d):
-  //n_faces[m_] += 1
+    blitz::Array<float,2> topological_scales = blitz::Array<float,2>(4, N_labels);
+    topological_scales(0, blitz::Range::all()) = thickness;
+    topological_scales(1, blitz::Range::all()) = width;
+    topological_scales(2, blitz::Range::all()) = length;
+    topological_scales(3, blitz::Range::all()) = genus;
 
-  //return n_faces[1:]
-
-
-  //def N1(m):
-  //"""
-  //Number of edges
-  //"""
-  //n_edges = np.zeros(np.unique(m).shape)
-
-  //nx, ny, nz = m.shape
-
-  //for i in range(nx):
-  //for j in range(ny):
-  //for k in range(nz):
-  //pos = np.array([i, j, k])
-  //m_ = m[tuple(pos)] 
-
-  //if m_ == 0:
-  //# skip calculating total edges of unlabelled region
-  //continue
-
-  //for d1 in [-1, 1]:
-  //for d2 in [-1, 1]:
-  //# edges in x-plane
-  //jj = (j+d1)%ny
-  //kk = (k+d2)%nz
-  //x_n = 1.0
-  //if m[i ,jj,k ] == m_:
-  //x_n += 1.0
-  //if m[i ,j ,kk] == m_:
-  //x_n += 1.0
-  //if m[i ,jj,kk] == m_:
-  //x_n += 1.0
-  //n_edges[m] += 1.0/x_n
-
-  //# edges in y-plane
-  //ii = (i+d1)%nx
-  //kk = (k+d2)%nz
-  //x_n = 1.0
-  //if m[ii,j ,k ] == m_:
-  //x_n += 1.0
-  //if m[i ,j ,kk] == m_:
-  //x_n += 1.0
-  //if m[ii,j ,kk] == m_:
-  //x_n += 1.0
-  //n_edges[m] += 1.0/x_n
-
-  //# edges in z-plane
-  //ii = (i+d1)%nx
-  //jj = (j+d2)%ny
-  //x_n = 1.0
-  //if m[ii,j ,k ] == m_:
-  //x_n += 1.0
-  //if m[i ,jj,k ] == m_:
-  //x_n += 1.0
-  //if m[ii,jj,k ] == m_:
-  //x_n += 1.0
-  //n_edges[m] += 1.0/x_n
-
-  //return n_edges[1:]
-
-  //def N0(m):
-
+    return topological_scales;
+  }
 }

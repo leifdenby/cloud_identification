@@ -40,7 +40,7 @@ py::array_t<T> blitz_array_to_py(blitz::Array<T,N> &a) {
 
   py::array_t<T> result = py::array(py::buffer_info(
     a.data(),
-    (py::size_t)sizeof(T),
+    sizeof(T),
     py::format_descriptor<T>::format(),
     a.dimensions(),
     shape,
@@ -158,6 +158,20 @@ py::array_t<int> N3(py::array_t<int> labels)
   return blitz_array_to_py<int,1>(n_cells);
 }
 
+py::array_t<float> topological_scales(py::array_t<int> labels, float dx)
+{
+  const size_t ndim = 3;
+  py::buffer_info info_labels = labels.request();
+  if (info_labels.ndim != ndim) {
+    throw std::runtime_error("Input should be 3D");
+  }
+
+  blitz::Array<int,ndim> labels_blitz = py_array_to_blitz<int,ndim>(labels);
+  blitz::Array<float,2> scales = minkowski::topological_scales(labels_blitz, dx);
+
+  return blitz_array_to_py<float,2>(scales);
+}
+
 
 PYBIND11_PLUGIN(cloud_identification)
 {
@@ -168,5 +182,6 @@ PYBIND11_PLUGIN(cloud_identification)
     m.def("N1", &N1, "Find number of edges for each labelled object");
     m.def("N2", &N2, "Find number of faces for each labelled object");
     m.def("N3", &N3, "Find number of cubes (i.e the volume) for each labelled object");
+    m.def("topological_scales", &topological_scales, "Compute characteristic topological scales (in terms of characteristic thickness, width, length and genus) using Minkowski functionals");
     return m.ptr();
 }
