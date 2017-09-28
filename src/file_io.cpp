@@ -7,16 +7,16 @@
 
 
 // fill a blitz array with "short integer" netcdf data
-void blitzncshort(int ncId, const char *nomVariable,
+void blitzncshort(int ncId, const char *varName,
 blitz::Array<short,3> & tab)
 {
   int status, varId, nbDims;
 
-  printf("Loading `%s`...\n", nomVariable);
+  printf("Loading `%s`...\n", varName);
 
-  status = nc_inq_varid(ncId, nomVariable, &varId);
+  status = nc_inq_varid(ncId, varName, &varId);
   if (status != NC_NOERR)
-    std::cout << nomVariable << " is absent" << std::endl ;
+    std::cout << varName << " is absent" << std::endl ;
   else
   {
     int *dimIds;
@@ -27,7 +27,7 @@ blitz::Array<short,3> & tab)
 
     if(nbDims != 3)
     {
-      fprintf(stderr,"Error in data, the variable %s should have 3 dimensions\n", nomVariable);
+      fprintf(stderr,"Error in data, the variable %s should have 3 dimensions\n", varName);
       exit(-1);
     }
 
