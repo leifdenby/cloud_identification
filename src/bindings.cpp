@@ -4,6 +4,7 @@
 #include <limits.h>
 
 #include "cloud_identification.h"
+#include "minkowski.h"
 #include "common.h"
 
 namespace py = pybind11;
@@ -23,6 +24,30 @@ blitz::Array<T,N> py_array_to_blitz(py::array_t<T> &a) {
   }
 
   return blitz::Array<T,N>((T*) info_a.ptr, shape, strides, blitz::neverDeleteData);
+}
+
+
+template<class T, int N>
+py::array_t<T> blitz_array_to_py(blitz::Array<T,N> &a) {
+  std::vector<py::size_t> shape = std::vector<py::size_t>(N);
+  std::vector<py::size_t> strides = std::vector<py::size_t>(N);
+
+  for (int i = 0; i < N; i++)
+  {
+    shape[i] = a.shape()[i];
+    strides[i] = a.stride()[i]*sizeof(T);
+  }
+
+  py::array_t<T> result = py::array(py::buffer_info(
+    a.data(),
+    (py::size_t)sizeof(T),
+    py::format_descriptor<T>::format(),
+    a.dimensions(),
+    shape,
+    strides
+  ));
+
+  return result;
 }
 
 
@@ -77,10 +102,31 @@ py::array_t<indexint> number_objects(py::array_t<double> scalar_field, py::array
   return result;
 }
 
+py::array_t<int> N0(py::array_t<int> labels)
+{
+  const size_t ndim = 3;
+
+  py::buffer_info info_labels = labels.request();
+
+  if (info_labels.ndim != ndim) {
+    throw std::runtime_error("Input should be 3D");
+  }
+
+  blitz::Array<int,ndim> labels_blitz = py_array_to_blitz<int,ndim>(labels);
+
+  blitz::Array<int,1> n_vertices = minkowski::N0(labels_blitz);
+
+  py::array_t<int> result = blitz_array_to_py<int,1>(n_vertices);
+
+  return result;
+}
+
+
 PYBIND11_PLUGIN(cloud_identification)
 {
     py::module m("cloud_identification");
     m.def("number_objects", &number_objects, "Identify individual cloud objects in regions defined by mask",
           py::arg("scalar_field"), py::arg("mask"));
+    m.def("N0", &N0, "Find number of vertices for each labelled object");
     return m.ptr();
 }

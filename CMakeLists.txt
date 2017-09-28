@@ -48,6 +48,7 @@ include_directories(${SOURCE_DIR} ${NETCDF_INCLUDES} ${BLITZ_INCLUDES})
 # put all cloud identification code in library so that we link against this
 # both for cli and for python module
 add_library(cloud_identification_core
+  src/minkowski.cpp
   src/cloud_identification.cpp
   src/file_io.cpp
   src/blitz_sort.cpp

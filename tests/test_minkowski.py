@@ -4,6 +4,7 @@ import warnings
 import numpy as np
 
 import minkowski
+import cloud_identification
 
 def parse_data_str(s, shape):
     return np.loadtxt(StringIO.StringIO(s)).reshape(*shape).astype(int)
@@ -19,6 +20,14 @@ def _check_func_values(test_data):
         else:
             func = getattr(minkowski, func_name)
             assert func(m) == test_data.get(func_name)
+
+        cpp_func = getattr(cloud_identification, func_name, None)
+
+        if cpp_func is None:
+            warnings.warn("Function `{}` not defined in Minkowski cpp interface".format(func_name))
+        else:
+            assert cpp_func(m) == test_data.get(func_name)
+
 
 def test_cube():
     test_data = dict(
@@ -134,3 +143,5 @@ def test_t_shape():
     _check_func_values(test_data)
 
 
+if __name__ == "__main__":
+    test_cube()
