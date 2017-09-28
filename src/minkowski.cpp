@@ -40,6 +40,7 @@ namespace minkowski {
     int nz = shape[2];
 
     blitz::Array<double,1> n_faces_fractions = blitz::Array<double,1>(label_max+1);
+    n_faces_fractions = 0;
 
     int l_ = -1;
 
@@ -86,6 +87,7 @@ namespace minkowski {
     int nz = shape[2];
 
     blitz::Array<double,1> n_edges_fractions = blitz::Array<double,1>(label_max+1);
+    n_edges_fractions = 0;
 
     int ii = -1, jj = -1, kk = -1;
     int l_ = -1;
@@ -157,6 +159,7 @@ namespace minkowski {
     int nz = shape[2];
 
     blitz::Array<double,1> n_vertices_fractions = blitz::Array<double,1>(label_max+1);
+    n_vertices_fractions = 0;
 
     int ii = -1, jj = -1, kk = -1;
     int l_ = -1;
