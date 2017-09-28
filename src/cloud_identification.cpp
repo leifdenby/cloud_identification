@@ -299,8 +299,12 @@ void init_output(
 
 
 void identify_borders(
+    // count number of borders on each cell
+    // a border being a cell interface with a different cloud 
+    // borders get assigned a border number (borderfield) and the associated
+    // cloud number at the other side of the border (assocfield)
     const blitz::Array<indexint,3> &dataext,
-    blitz::Array<int,1> borderfield,
+    blitz::Array<int,1> borderfield, 
     blitz::Array<indexint,1> assocfield,
     indexint *borderfield_counter,
     const int cloudcounter
@@ -333,6 +337,7 @@ void identify_borders(
     
     si1=1;
     // first numbering of borders on the inner domain
+    // si1 keeps track of the total number of border cells in the domain
     for (int i=1; i<imax-1; ++i) {
     for (int j=1; j<jmax-1; ++j) {
     for (int k=0; k<kmax; ++k) {
@@ -342,8 +347,11 @@ void identify_borders(
         startindex(i,j,k)=si1;
         
         nrfieldtemp1=dataext(i-1,j,k);
+        // check if neighboring cell is a cloud
         if(nrfieldtemp1>0){
+          //check it is a different cloud
           if(nrfieldtemp0!=nrfieldtemp1) {
+            //if so, add to the borderfield/assocfield arrays
             borderfield(si1+nrb)=si1+nrb;
             assocfield(si1+nrb)=nrfieldtemp1;
             nrb=nrb+1;
@@ -394,6 +402,7 @@ void identify_borders(
           }
         }
         nrborders(i,j,k)=nrb;
+        // add the number of borders of this cell to the start index
         si1=si1+nrb;
 
 #ifdef DEBUG_CHECK_LIMITS
@@ -439,9 +448,35 @@ void identify_borders(
     
     // update the borderfield by sweeping back and forth
     // innerdomain sweep, innerdomain reverse sweep
-    // halo update not necesary because of code above
+    // halo update not necessary because of code above
     // this will need further comments
-
+    
+    // this is similar to the original identification
+    // of cloud numbers
+    // but now adding an index for each edge of the cell
+    // (keeping in mind actual borders are sparse)
+    // each cell is assigned the lowest value of bf on
+    // the edges of its
+    // neighbouring cells. Criteria:
+    // 1) same cloud number and same associated cloud
+    // 2) cloud number and associated cloud number swapped
+    //    i.e. the different side of the same edge.
+    
+    // Possibly we should check for
+    // actual adjacency
+    // i.e. whether the edges actually touch
+    // to identify actual borders
+    
+    // However, this should not to affect results 
+    // when only the highest col matters
+    
+    // Example below
+    //  1 2 2 2 1
+    //  1 1 2 1 1
+    //  1 - - - 1
+    //  1 1 1 1 1
+    //  Both sides of the 2 on the second row may be identified as same border here
+    
     moreswaps=true;
     while(moreswaps==true) {
       moreswaps=false; //reset swap
@@ -452,10 +487,15 @@ void identify_borders(
       for (int k=0; k<kmax; ++k) {
         nrb0=nrborders(i,j,k);
         if(nrb0>0) {
-          nrf0=dataext(i,j,k);
-          si0=startindex(i,j,k);      
+          nrf0=dataext(i,j,k); // cloud number of current cell
+          si0=startindex(i,j,k); // first index of "borderfield" associated with
+                                 // this cell       
         
-          nrb1=nrborders(i-1,j,k);
+          nrb1=nrborders(i-1,j,k); 
+          
+          // for each neighbouring cell
+          // check if the two cells share neighbour pairs for
+          // which condition 1 or 2 above is met.
           if(nrb1>0) {
             nrf1=dataext(i-1,j,k);
             for (int l=0; l<nrb0; ++l) {
@@ -474,6 +514,7 @@ void identify_borders(
                   }
                 }
               }
+              // only update in 3D array if really needed
               if(bf00!=bf0) {
                 borderfield(si0+l)=bf0;
               }
@@ -630,6 +671,7 @@ void identify_borders(
     }
     
     // renumber the borders
+    // use negative indices here
     (*borderfield_counter)=1; //avoid zero
     for (int i=1; i<imax-1; ++i) {
     for (int j=1; j<jmax-1; ++j) {
@@ -649,7 +691,9 @@ void identify_borders(
     }
 
     printf("borderfield borderfield_counter +1 %d \n", *borderfield_counter);
-           
+    
+    // update locations that did not keep their index as well
+    // giving everything negative indices      
     for (int i=1; i<imax-1; ++i) {
     for (int j=1; j<jmax-1; ++j) {
     for (int k=0; k<kmax; ++k) {
@@ -667,6 +711,7 @@ void identify_borders(
     }
     }
     
+    // swap sign of indices back to positive
     for (int i=1; i<imax-1; ++i) {
     for (int j=1; j<jmax-1; ++j) {
     for (int k=0; k<kmax; ++k) {
@@ -760,7 +805,9 @@ void find_cols_on_borders(
             colindex=borderfield(si1+l);    
             coldata(colindex,2)=dataext(i,j,k);
             coldata(colindex,3)=assocfield(si1+l);
+            // look at the  "lowest side" of the border
             if(dataext(i,j,k)<assocfield(si1+l)) {
+              // find the highest of these "lowest side" points
               if(fieldext(i,j,k)>coldata(colindex,0)) {
                 coldata(colindex,0)=fieldext(i,j,k);
               }
@@ -822,10 +869,10 @@ void merge_along_cols(
           nrfind=dataext(i,j,k);
           if(nrfind>0) {
             if(fieldext(i,j,k)>blobmaxs(nrfind)) {
-              blobmaxs(nrfind)=fieldext(i,j,k);
+              blobmaxs(nrfind)=fieldext(i,j,k); // highest point on a "blob"
             }
             if(fieldext(i,j,k)<blobmins(nrfind)) {
-              blobmins(nrfind)=fieldext(i,j,k);
+              blobmins(nrfind)=fieldext(i,j,k); // lowest point on a "blob"
             }
           }
         }
@@ -855,6 +902,7 @@ void merge_along_cols(
       }
 
       // colratio determines if clouds get merged
+      // note the non-linear transformation used here
       m1=std::max(blobmaxs(targetcld1),blobmaxs(targetcld2));
       m11=inv_scaling_parameter*(m1*m1*(2*(m1>0)-1)); 
       m2=std::min(blobmins(targetcld1),blobmins(targetcld2));
@@ -895,6 +943,8 @@ void merge_along_cols(
 
     // update all remaining targets
     // successive merges
+    // reverse order after each swap
+    // the targetcld array contains the eventual target
     int tcld;
     moreswaps=true;
     while(moreswaps==true) {
