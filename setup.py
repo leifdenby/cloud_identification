@@ -13,11 +13,14 @@ from setuptools import setup, Extension
 from setuptools.command.build_ext import build_ext
 from setuptools.command.test import test as TestCommand
 
+BUILD_TEMP_DIR = None
+
 class PyTest(TestCommand):
     def run_tests(self):
         import shlex
         #import here, cause outside the eggs aren't loaded
         import pytest
+        os.environ['BUILD_TEMP_DIR'] = BUILD_TEMP_DIR
         errno = pytest.main(['tests/'])
         sys.exit(errno)
 
@@ -50,6 +53,11 @@ class CMakeBuild(build_ext):
             os.path.dirname(self.get_ext_fullpath(ext.name)))
         cmake_args = ['-DCMAKE_LIBRARY_OUTPUT_DIRECTORY=' + extdir,
                       '-DPYTHON_EXECUTABLE=' + sys.executable]
+
+        # XXX: hack, set build path in global variable so we can access it when
+        # running tests
+        global BUILD_TEMP_DIR
+        BUILD_TEMP_DIR = self.build_temp
 
         cfg = 'Debug' if self.debug else 'Release'
         build_args = ['--config', cfg]
