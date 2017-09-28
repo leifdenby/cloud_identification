@@ -182,6 +182,7 @@ PYBIND11_PLUGIN(cloud_identification)
     m.def("N1", &N1, "Find number of edges for each labelled object");
     m.def("N2", &N2, "Find number of faces for each labelled object");
     m.def("N3", &N3, "Find number of cubes (i.e the volume) for each labelled object");
-    m.def("topological_scales", &topological_scales, "Compute characteristic topological scales (in terms of characteristic thickness, width, length and genus) using Minkowski functionals");
+    m.def("topological_scales", &topological_scales, "Compute characteristic topological scales (in terms of characteristic thickness, width, length and genus) using Minkowski functionals", 
+          py::arg("labels"), py::arg("dx"));
     return m.ptr();
 }

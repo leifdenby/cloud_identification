@@ -204,6 +204,56 @@ def test_t_shape():
     )
     _check_func_values(test_data)
 
+def test_sphere():
+    l = 100.
+    N = 20
+    dx = l/N
+
+    x_ = np.linspace(-l/2., l/2., N)
+    y_ = np.linspace(-l/2., l/2., N)
+    z_ = np.linspace(-l/2., l/2., N)
+
+    x, y, z = np.meshgrid(x_, y_, z_, indexing='ij')
+
+    r = np.sqrt(x**2. + y**2. + z**2.)
+
+    mask = r < 0.3*r.max()
+
+    labels = cloud_identification.number_objects(mask=mask, scalar_field=r)
+
+    assert cloud_identification.N0(labels) == minkowski.N0(labels)
+    assert cloud_identification.N1(labels) == minkowski.N1(labels)
+    assert cloud_identification.N2(labels) == minkowski.N2(labels)
+    assert cloud_identification.N3(labels) == minkowski.N3(labels)
+
+
+    assert len(np.unique(labels)) == 2
+
+    scales_cpp = cloud_identification.topological_scales(labels, dx=dx)
+    scales_py = minkowski.topological_scales(labels, dx=dx)
+
+    assert np.all(np.abs(scales_py - scales_cpp) < 1.0e2*np.finfo(scales_cpp.dtype).eps)
 
 if __name__ == "__main__":
-    test_two_cubes()
+    l = 100.
+    N = 300
+
+    dx = l/N
+
+    x_ = np.linspace(-l/2., l/2., N)
+    y_ = np.linspace(-l/2., l/2., N)
+    z_ = np.linspace(-l/2., l/2., N)
+
+    x, y, z = np.meshgrid(x_, y_, z_, indexing='ij')
+
+    r = np.sqrt(x**2. + y**2. + z**2.)
+
+    lr = 0.3*r.max()
+
+    mask = r < lr
+
+    labels = cloud_identification.number_objects(mask=mask, scalar_field=r)
+    scales_cpp = cloud_identification.topological_scales(labels, dx=dx)
+
+    print lr
+    print scales_cpp

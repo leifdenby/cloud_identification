@@ -7,7 +7,7 @@ def N3(labels):
     """
     Number of cubes per label
     """
-    return ndimage.sum(np.ones_like(labels), labels, np.unique(labels)[1:])
+    return np.rint(ndimage.sum(np.ones_like(labels), labels, np.unique(labels)[1:]))
 
 def N2(labels):
     """
@@ -45,7 +45,7 @@ def N2(labels):
                     else:
                         n_faces[l_] += 0.5
 
-    return n_faces[1:].astype(int)
+    return np.rint(n_faces[1:])
 
 def N1(labels):
     """
@@ -102,7 +102,7 @@ def N1(labels):
                             x_n += 1.0
                         n_edges[l_] += 1.0/x_n
 
-    return n_edges[1:]
+    return np.rint(n_edges[1:])
 
 def N0(labels):
     """
@@ -148,10 +148,9 @@ def N0(labels):
 
     # make sure we're close enough to an int, doing differences in
     # seven operations so can get 7 machine epsilon out
+    assert np.all(np.abs(v - np.rint(v) < 7*np.finfo(float).eps) for v in n_vertices)
 
-    assert np.all(np.abs(v - int(v) < 7*np.finfo(float).eps) for v in n_vertices)
-
-    return n_vertices[1:].astype(int)
+    return np.rint(n_vertices[1:])
 
 def topological_scales(labels, dx):
     """

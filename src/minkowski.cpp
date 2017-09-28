@@ -68,7 +68,7 @@ namespace minkowski {
 
     blitz::Array<int,1> n_faces = blitz::Array<int,1>(label_max+1);
     for (int i=0; i<n_faces.size(); i++) {
-      n_faces(i) = (int)n_faces_fractions(i);
+      n_faces(i) = (int)round(n_faces_fractions(i));
     }
 
     return n_faces(blitz::Range(1, blitz::toEnd));
@@ -140,7 +140,7 @@ namespace minkowski {
 
     blitz::Array<int,1> n_edges = blitz::Array<int,1>(label_max+1);
     for (int i=0; i<n_edges.size(); i++) {
-      n_edges(i) = (int)n_edges_fractions(i);
+      n_edges(i) = (int)round(n_edges_fractions(i));
     }
 
     return n_edges(blitz::Range(1, blitz::toEnd));
@@ -207,7 +207,7 @@ namespace minkowski {
     
     blitz::Array<int,1> n_vertices = blitz::Array<int,1>(label_max+1);
     for (int i=0; i<n_vertices.size(); i++) {
-      n_vertices(i) = (int)n_vertices_fractions(i);
+      n_vertices(i) = (int)round(n_vertices_fractions(i));
     }
 
     return n_vertices(blitz::Range(1, blitz::toEnd));
