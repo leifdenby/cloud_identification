@@ -53,7 +53,11 @@ class TestNCFile(BaseTestClass):
             return d
 
         save_input()
-        proc = subprocess.Popen('build/main')
+        executable_path = os.path.join(os.environ.get("BUILD_TEMP_DIR", "build"), "main")
+        if not os.path.exists(executable_path):
+            raise Exception("Couldn't find main executable")
+
+        proc = subprocess.Popen(executable_path)
         proc.communicate()
         delete_input()
 
