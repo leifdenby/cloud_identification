@@ -94,3 +94,17 @@ which should be of the `short` datatype.
 `maskext`
 
 #
+
+
+# Other info
+
+To get ale-vim to pick up the correct libraries when compiling for
+error-checking the compiler arguments must be set. These can be found in
+`build/compile_commands.json`, eg
+
+    let g:ale_cpp_gcc_options="
+    -I/nfs/see-fs-02_users/earlcd/git-repos/cloud_identification/src
+    -I/apps/developers/compilers/canopy/1.7.4/1/bit-64/Enthought/Canopy_64bit/User/lib/python2.7/site-packages/scipy/weave/blitz
+    -I/nfs/see-fs-02_users/earlcd/git-repos/cloud_identification/lib/pybind11/include
+    -I/apps/developers/compilers/canopy/1.7.4/1/bit-64/appdata/canopy-1.7.4.3348.rh5-x86_64/include/python2.7
+    -Wall"
