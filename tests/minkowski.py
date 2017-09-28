@@ -3,19 +3,19 @@ from scipy import ndimage
 import numpy as np
 
 
-def N3(m):
+def N3(labels):
     """
     Number of cubes per label
     """
-    return ndimage.sum(np.ones_like(m), m, np.unique(m)[1:])
+    return ndimage.sum(np.ones_like(labels), labels, np.unique(labels)[1:])
 
-def N2(m):
+def N2(labels):
     """
     Number of faces
     """
-    n_faces = np.zeros(np.unique(m).shape)
+    n_faces = np.zeros(np.unique(labels).shape)
 
-    nx, ny, nz = m.shape
+    nx, ny, nz = labels.shape
 
     dirs = [
         np.array([0, 0, 1]),
@@ -27,41 +27,40 @@ def N2(m):
     ]
 
     def get_item(v, pos):
-        return m[pos[0]%nx, pos[1]%ny, pos[2]%nz]
+        return labels[pos[0]%nx, pos[1]%ny, pos[2]%nz]
 
 
     for i in range(nx):
         for j in range(ny):
             for k in range(nz):
                 pos = np.array([i, j, k])
-                m_ = m[tuple(pos)] 
-                if m_ == 0:
+                l_ = labels[tuple(pos)] 
+                if l_ == 0:
                     # skip calculating total faces of unlabelled region
                     continue
 
                 for d in dirs:
-                    if m_ != get_item(m, pos + d):
-                        n_faces[m_] += 1.0
+                    if l_ != get_item(labels, pos + d):
+                        n_faces[l_] += 1.0
                     else:
-                        n_faces[m_] += 0.5
+                        n_faces[l_] += 0.5
 
     return n_faces[1:].astype(int)
 
-def N1(m):
+def N1(labels):
     """
     Number of edges
     """
-    n_edges = np.zeros(np.unique(m).shape)
+    n_edges = np.zeros(np.unique(labels).shape)
 
-    nx, ny, nz = m.shape
+    nx, ny, nz = labels.shape
 
     for i in range(nx):
         for j in range(ny):
             for k in range(nz):
-                pos = np.array([i, j, k])
-                m_ = m[tuple(pos)] 
+                l_ = labels[i,j,k] 
 
-                if m_ == 0:
+                if l_ == 0:
                     # skip calculating total edges of unlabelled region
                     continue
 
@@ -71,55 +70,55 @@ def N1(m):
                         jj = (j+d1)%ny
                         kk = (k+d2)%nz
                         x_n = 1.0
-                        if m[i ,jj,k ] == m_:
+                        if labels[i ,jj,k ] == l_:
                             x_n += 1.0
-                        if m[i ,j ,kk] == m_:
+                        if labels[i ,j ,kk] == l_:
                             x_n += 1.0
-                        if m[i ,jj,kk] == m_:
+                        if labels[i ,jj,kk] == l_:
                             x_n += 1.0
-                        n_edges[m] += 1.0/x_n
+                        n_edges[l_] += 1.0/x_n
 
                         # edges in y-plane
                         ii = (i+d1)%nx
                         kk = (k+d2)%nz
                         x_n = 1.0
-                        if m[ii,j ,k ] == m_:
+                        if labels[ii,j ,k ] == l_:
                             x_n += 1.0
-                        if m[i ,j ,kk] == m_:
+                        if labels[i ,j ,kk] == l_:
                             x_n += 1.0
-                        if m[ii,j ,kk] == m_:
+                        if labels[ii,j ,kk] == l_:
                             x_n += 1.0
-                        n_edges[m] += 1.0/x_n
+                        n_edges[l_] += 1.0/x_n
 
                         # edges in z-plane
                         ii = (i+d1)%nx
                         jj = (j+d2)%ny
                         x_n = 1.0
-                        if m[ii,j ,k ] == m_:
+                        if labels[ii,j ,k ] == l_:
                             x_n += 1.0
-                        if m[i ,jj,k ] == m_:
+                        if labels[i ,jj,k ] == l_:
                             x_n += 1.0
-                        if m[ii,jj,k ] == m_:
+                        if labels[ii,jj,k ] == l_:
                             x_n += 1.0
-                        n_edges[m] += 1.0/x_n
+                        n_edges[l_] += 1.0/x_n
 
     return n_edges[1:]
 
-def N0(m):
+def N0(labels):
     """
     Number of vertices
     """
-    n_vertices = np.zeros(np.unique(m).shape)
+    n_vertices = np.zeros(np.unique(labels).shape)
 
-    nx, ny, nz = m.shape
+    nx, ny, nz = labels.shape
 
     for i in range(nx):
         for j in range(ny):
             for k in range(nz):
                 pos = np.array([i, j, k])
-                m_ = m[tuple(pos)] 
+                l_ = labels[tuple(pos)] 
 
-                if m_ == 0:
+                if l_ == 0:
                     # skip calculating total edges of unlabelled region
                     continue
 
@@ -131,21 +130,21 @@ def N0(m):
                             kk = (k+d3)%nz
 
                             x_n = 1.0
-                            if m[i ,jj,k ] == m_:
+                            if labels[i ,jj,k ] == l_:
                                 x_n += 1.0
-                            if m[i ,j ,kk] == m_:
+                            if labels[i ,j ,kk] == l_:
                                 x_n += 1.0
-                            if m[i ,jj,kk] == m_:
+                            if labels[i ,jj,kk] == l_:
                                 x_n += 1.0
-                            if m[ii,jj,k ] == m_:
+                            if labels[ii,jj,k ] == l_:
                                 x_n += 1.0
-                            if m[ii,j ,kk] == m_:
+                            if labels[ii,j ,kk] == l_:
                                 x_n += 1.0
-                            if m[ii,jj,kk] == m_:
+                            if labels[ii,jj,kk] == l_:
                                 x_n += 1.0
-                            if m[ii,j ,k ] == m_:
+                            if labels[ii,j ,k ] == l_:
                                 x_n += 1.0
-                            n_vertices[m] += 1.0/x_n
+                            n_vertices[l_] += 1.0/x_n
 
     # make sure we're close enough to an int, doing differences in
     # seven operations so can get 7 machine epsilon out
@@ -153,3 +152,25 @@ def N0(m):
     assert np.all(np.abs(v - int(v) < 7*np.finfo(float).eps) for v in n_vertices)
 
     return n_vertices[1:].astype(int)
+
+def topological_scales(labels, dx):
+    """
+    Compute characteristic thickness, width, length and genus using Minkowski
+    functionals in 3D of all objects labelled objects in `labels`
+    """
+    n0 = N0(labels).astype(float)
+    n1 = N1(labels).astype(float)
+    n2 = N2(labels).astype(float)
+    n3 = N3(labels).astype(float)
+
+    V0 = n3
+    V1 = 2.0*(n2-3.0*n3)/(9.0*dx)
+    V2 = 2.0*(n1-2*n2+3*n3)/(9.0*dx*dx)
+    V3 = (n0-n1+n2-n3)/(dx*dx*dx)
+
+    thickness = np.abs(V0/(2.0*V1))
+    width = np.abs(2.0*V1/(3.14159*V2))
+    length = np.abs(dx*dx*dx*3.0*V2/4.0)
+    genus = 1.0-0.5*(n0-n1+n2-n3)
+
+    return np.array([thickness, width, length, genus])
