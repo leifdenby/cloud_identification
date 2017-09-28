@@ -13,7 +13,7 @@ def N2(m):
     """
     Number of faces
     """
-    n_faces = np.zeros_like(np.unique(m))
+    n_faces = np.zeros(np.unique(m).shape)
 
     nx, ny, nz = m.shape
 
@@ -41,10 +41,11 @@ def N2(m):
 
                 for d in dirs:
                     if m_ != get_item(m, pos + d):
-                        n_faces[m_] += 1
+                        n_faces[m_] += 1.0
+                    else:
+                        n_faces[m_] += 0.5
 
-    return n_faces[1:]
-
+    return n_faces[1:].astype(int)
 
 def N1(m):
     """

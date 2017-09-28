@@ -105,20 +105,57 @@ py::array_t<indexint> number_objects(py::array_t<double> scalar_field, py::array
 py::array_t<int> N0(py::array_t<int> labels)
 {
   const size_t ndim = 3;
-
   py::buffer_info info_labels = labels.request();
-
   if (info_labels.ndim != ndim) {
     throw std::runtime_error("Input should be 3D");
   }
 
   blitz::Array<int,ndim> labels_blitz = py_array_to_blitz<int,ndim>(labels);
-
   blitz::Array<int,1> n_vertices = minkowski::N0(labels_blitz);
 
-  py::array_t<int> result = blitz_array_to_py<int,1>(n_vertices);
+  return blitz_array_to_py<int,1>(n_vertices);
+}
 
-  return result;
+py::array_t<int> N1(py::array_t<int> labels)
+{
+  const size_t ndim = 3;
+  py::buffer_info info_labels = labels.request();
+  if (info_labels.ndim != ndim) {
+    throw std::runtime_error("Input should be 3D");
+  }
+
+  blitz::Array<int,ndim> labels_blitz = py_array_to_blitz<int,ndim>(labels);
+  blitz::Array<int,1> n_edges = minkowski::N1(labels_blitz);
+
+  return blitz_array_to_py<int,1>(n_edges);
+}
+
+py::array_t<int> N2(py::array_t<int> labels)
+{
+  const size_t ndim = 3;
+  py::buffer_info info_labels = labels.request();
+  if (info_labels.ndim != ndim) {
+    throw std::runtime_error("Input should be 3D");
+  }
+
+  blitz::Array<int,ndim> labels_blitz = py_array_to_blitz<int,ndim>(labels);
+  blitz::Array<int,1> n_faces = minkowski::N2(labels_blitz);
+
+  return blitz_array_to_py<int,1>(n_faces);
+}
+
+py::array_t<int> N3(py::array_t<int> labels)
+{
+  const size_t ndim = 3;
+  py::buffer_info info_labels = labels.request();
+  if (info_labels.ndim != ndim) {
+    throw std::runtime_error("Input should be 3D");
+  }
+
+  blitz::Array<int,ndim> labels_blitz = py_array_to_blitz<int,ndim>(labels);
+  blitz::Array<int,1> n_cells = minkowski::N3(labels_blitz);
+
+  return blitz_array_to_py<int,1>(n_cells);
 }
 
 
@@ -128,5 +165,8 @@ PYBIND11_PLUGIN(cloud_identification)
     m.def("number_objects", &number_objects, "Identify individual cloud objects in regions defined by mask",
           py::arg("scalar_field"), py::arg("mask"));
     m.def("N0", &N0, "Find number of vertices for each labelled object");
+    m.def("N1", &N1, "Find number of edges for each labelled object");
+    m.def("N2", &N2, "Find number of faces for each labelled object");
+    m.def("N3", &N3, "Find number of cubes (i.e the volume) for each labelled object");
     return m.ptr();
 }
