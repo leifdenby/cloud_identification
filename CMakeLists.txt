@@ -9,7 +9,7 @@ set(BUILD_SHARED_LIBS "YES")
 set(CMAKE_EXPORT_COMPILE_COMMANDS YES)
 
 #set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -pthread -fno-strict-aliasing -DNDEBUG -g -fwrapv -fPIC -mtune=native -funroll-all-loops -fomit-frame-pointer -march=native -mtune=native -msse4 -ftree-vectorize -ftree-vectorizer-verbose=5 -ffast-math -funroll-loops -ftracer")
-set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -pthread -fno-strict-aliasing -fwrapv -fPIC -mtune=native -funroll-all-loops -fomit-frame-pointer -msse4 -ftree-vectorize -ffast-math -funroll-loops -ftracer")
+#set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -pthread -fno-strict-aliasing -fwrapv -fPIC -mtune=native -funroll-all-loops -fomit-frame-pointer -msse4 -ftree-vectorize -ffast-math -funroll-loops -ftracer")
 # XXX: had to remove `-march=native` for compiling python interface with pybind11
 
 if(NOT CMAKE_BUILD_TYPE)
@@ -22,8 +22,7 @@ set(CMAKE_CXX_FLAGS_RELEASE "${CMAKE_CXX_FLAGS_RELEASE} -DNDEBUG")
 set (NETCDF_CXX "YES")
 set (NETCDF_C "YES")
 set (NETCDF_NC4 "YES")
-FIND_PACKAGE(NetCDF REQUIRED)
-
+FIND_PACKAGE(NetCDF)
 
 find_package(python)
 find_python_module(weave)
@@ -44,25 +43,39 @@ set(SOURCE_DIR "src")
 
 include_directories(${SOURCE_DIR} ${NETCDF_INCLUDES} ${BLITZ_INCLUDES})
 
+# if the netcdf c++ library isn't available we still may want to compile the
+# python interface, in that case we compile in some dummy routines for loading
+# data from netcdf files
+if(NETCDF_HAS_c++4)
+  set(FILE_IO_SRC "src/file_io.cpp")
+else()
+  set(FILE_IO_SRC "src/file_io_dummy.cpp")
+endif()
 
 # put all cloud identification code in library so that we link against this
 # both for cli and for python module
 add_library(cloud_identification_core
   src/minkowski.cpp
   src/cloud_identification.cpp
-  src/file_io.cpp
+  ${FILE_IO_SRC}
   src/blitz_sort.cpp
 )
 
+if(NETCDF_HAS_c++4)
+  target_link_libraries(cloud_identification_core ${NETCDF_LIBRARIES})
 
-add_executable(main src/main.cpp)
-target_link_libraries(main cloud_identification_core ${NETCDF_LIBRARIES})
+  add_executable(main 
+    src/main.cpp)
+  target_link_libraries(main cloud_identification_core)
+else()
+  message(STATUS "netcdf-c++ library wasn't found, skipping compilation of CLI `main`")
+endif()
 
 add_subdirectory(lib/pybind11)
 pybind11_add_module(cloud_identification
   ${SOURCE_DIR}/bindings.cpp
 )
-target_link_libraries(cloud_identification cloud_identification_core ${NETCDF_LIBRARIES})
+target_link_libraries(cloud_identification cloud_identification_core)
 
 
 # For debugging cmake variables:
