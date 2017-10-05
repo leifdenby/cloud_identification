@@ -241,6 +241,24 @@ def make_spheroid_object(r0, dx):
 
     return mask, r
 
+def make_cylinder_object(r0, l0, dx):
+    lx = ly = 4*r0
+    lz = 2*l0
+
+    l = np.array([lx, ly, lz])
+    Nx, Ny, Nz = (l/dx).astype(int)
+
+    x_ = np.linspace(-lx/2., lx/2., Nx)
+    y_ = np.linspace(-ly/2., ly/2., Ny)
+    z_ = np.linspace(-lz/2., lz/2., Nz)
+    x, y, z = np.meshgrid(x_, y_, z_, indexing='ij')
+
+    r = np.sqrt(x**2. + y**2.)
+
+    mask = np.logical_and(r < r0, np.abs(z) < l0/2.)
+
+    return mask, r
+
 def test_sphere():
     dx = 25.
     mask, s = make_spheroid_object(r0=100., dx=dx)
@@ -278,6 +296,44 @@ def test_ellipsoid():
     scales_py = minkowski.topological_scales(labels, dx=dx).astype(scales_cpp.dtype)
 
     _assert_equal_floats(scales_py, scales_cpp)
+
+def test_cylinder_filamentarity_and_planarity():
+    dx = 10.
+
+    # longer cylinder should have larger filamentarity
+    mask_short, s_short = make_cylinder_object(r0=100., l0=200., dx=dx)
+    mask_long, s_long = make_cylinder_object(r0=100., l0=400., dx=dx)
+
+    def get_filamentarity_and_planarity(mask, s):
+        labels = cloud_identification.number_objects(mask=mask, scalar_field=s)
+        assert len(np.unique(labels)) == 2
+        mf = cloud_identification.topological_scales(labels, dx=dx)
+        filamentarity = cloud_identification.filamentarity(mf=mf)
+        planarity = cloud_identification.planarity(mf=mf)
+
+        return filamentarity, planarity
+
+    f_short, _ = get_filamentarity_and_planarity(mask_short, s_short)
+    f_long, _ = get_filamentarity_and_planarity(mask_long, s_long)
+
+    assert f_long > f_short
+
+    # larger disc should have greater planarity
+    mask_sm_disc, s_sm_disc = make_cylinder_object(r0=300., l0=50., dx=dx)
+    mask_lg_disc, s_lg_disc = make_cylinder_object(r0=600., l0=50., dx=dx)
+
+    def get_filamentarity_and_planarity(mask, s):
+        labels = cloud_identification.number_objects(mask=mask, scalar_field=s)
+        mf = cloud_identification.topological_scales(labels, dx=dx)
+        filamentarity = cloud_identification.filamentarity(mf=mf)
+        planarity = cloud_identification.planarity(mf=mf)
+
+        return filamentarity, planarity
+
+    _, p_sm_disc = get_filamentarity_and_planarity(mask_sm_disc, s_sm_disc)
+    _, p_lg_disc = get_filamentarity_and_planarity(mask_lg_disc, s_lg_disc)
+
+    assert p_sm_disc < p_lg_disc
 
 if __name__ == "__main__":
     l = 100.

@@ -248,4 +248,26 @@ namespace minkowski {
 
     return topological_scales;
   }
+
+  /** Compute planarity from Minkowski functionals
+   */
+  blitz::Array<float,1> planarity(blitz::Array<float,2> &mf) {
+    blitz::Array<float,1> thickness = mf(0, blitz::Range::all());
+    blitz::Array<float,1> width = mf(1, blitz::Range::all());
+
+    blitz::Array<float,1> P(thickness.size());
+    P = (width - thickness)/(width + thickness);
+    return P;
+  }
+
+  /** Compute filamentarity from Minkowski functionals
+   */
+  blitz::Array<float,1> filamentarity(blitz::Array<float,2> &mf) {
+    blitz::Array<float,1> width = mf(1, blitz::Range::all());
+    blitz::Array<float,1> length = mf(2, blitz::Range::all());
+
+    blitz::Array<float,1> F(width.size());
+    F = (length - width)/(length + width);
+    return F;
+  }
 }

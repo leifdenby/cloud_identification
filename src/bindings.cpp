@@ -173,6 +173,35 @@ py::array_t<float> topological_scales(py::array_t<int> labels, float dx)
 }
 
 
+py::array_t<float> filamentarity(py::array_t<float> mf)
+{
+  const size_t ndim = 2;
+  py::buffer_info info_labels = mf.request();
+  if (info_labels.ndim != ndim) {
+    throw std::runtime_error("Input should be 2D");
+  }
+
+  blitz::Array<float,ndim> mf_blitz = py_array_to_blitz<float,ndim>(mf);
+  blitz::Array<float,1> filamentarity = minkowski::filamentarity(mf_blitz);
+
+  return blitz_array_to_py<float,1>(filamentarity);
+}
+
+
+py::array_t<float> planarity(py::array_t<float> mf)
+{
+  const size_t ndim = 2;
+  py::buffer_info info_labels = mf.request();
+  if (info_labels.ndim != ndim) {
+    throw std::runtime_error("Input should be 2D");
+  }
+
+  blitz::Array<float,ndim> mf_blitz = py_array_to_blitz<float,ndim>(mf);
+  blitz::Array<float,1> planarity = minkowski::planarity(mf_blitz);
+
+  return blitz_array_to_py<float,1>(planarity);
+}
+
 PYBIND11_PLUGIN(cloud_identification)
 {
     py::module m("cloud_identification");
@@ -184,5 +213,7 @@ PYBIND11_PLUGIN(cloud_identification)
     m.def("N3", &N3, "Find number of cubes (i.e the volume) for each labelled object");
     m.def("topological_scales", &topological_scales, "Compute characteristic topological scales (in terms of characteristic thickness, width, length and genus) using Minkowski functionals", 
           py::arg("labels"), py::arg("dx"));
+    m.def("planarity", &planarity, "Compute planarity of objects from Minkowski functionals", py::arg("mf"));
+    m.def("filamentarity", &filamentarity, "Compute filamentarity of objects from Minkowski functionals", py::arg("mf"));
     return m.ptr();
 }
