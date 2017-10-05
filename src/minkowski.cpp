@@ -237,7 +237,7 @@ namespace minkowski {
 
     thickness = abs(V0/(2.0*V1));
     width =  abs(2.0*V1/(3.14159*V2));
-    length =  abs(dx*dx*dx*3.0*V2/4.0);
+    length =  abs(3.0*V2/(4.0*V3));
     genus = 1.0-0.5*(n0-n1+n2-n3);
 
     blitz::Array<float,2> topological_scales = blitz::Array<float,2>(4, N_labels);

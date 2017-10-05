@@ -157,19 +157,21 @@ def topological_scales(labels, dx):
     Compute characteristic thickness, width, length and genus using Minkowski
     functionals in 3D of all objects labelled objects in `labels`
     """
-    n0 = N0(labels).astype(float)
-    n1 = N1(labels).astype(float)
-    n2 = N2(labels).astype(float)
-    n3 = N3(labels).astype(float)
+    dtype = np.float32  # at the moment the cpp library uses only 32-bit precision
+    dx = dtype(dx)
+    n0 = N0(labels).astype(dtype)
+    n1 = N1(labels).astype(dtype)
+    n2 = N2(labels).astype(dtype)
+    n3 = N3(labels).astype(dtype)
 
     V0 = n3
     V1 = 2.0*(n2-3.0*n3)/(9.0*dx)
-    V2 = 2.0*(n1-2*n2+3*n3)/(9.0*dx*dx)
+    V2 = 2.0*(n1-2.0*n2+3.0*n3)/(9.0*dx*dx)
     V3 = (n0-n1+n2-n3)/(dx*dx*dx)
 
     thickness = np.abs(V0/(2.0*V1))
     width = np.abs(2.0*V1/(3.14159*V2))
-    length = np.abs(dx*dx*dx*3.0*V2/4.0)
+    length = np.abs(3.0*V2/(4.0*V3))
     genus = 1.0-0.5*(n0-n1+n2-n3)
 
     return np.array([thickness, width, length, genus])
