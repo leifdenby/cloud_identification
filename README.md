@@ -23,6 +23,11 @@ Algorithm:
 2. merging algorithm is applied to get rid of the
    smaller local peaks.
 
+*OBS*: The algorithm assumes that the domain is periodic and the outermost
+edges in the x, y and z-direction are assumed to be ghost-cells and won't be
+taken into account (which means that to e.g. remove objects that intersect with
+the edge a mask that one index away from the edge should be used).
+
 # Installation
 
 Whether you'll be using the interface through python or via the command line

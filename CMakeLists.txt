@@ -55,6 +55,7 @@ endif()
 # put all cloud identification code in library so that we link against this
 # both for cli and for python module
 add_library(cloud_identification_core
+  src/filters.cpp
   src/minkowski.cpp
   src/cloud_identification.cpp
   ${FILE_IO_SRC}
