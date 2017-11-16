@@ -33,7 +33,7 @@ if(NOT (PY_WEAVE OR PY_SCIPY.WEAVE))
   required to provide `blitz`). Since scipy v0.19 weave is no longer
   included with scipy. Please install with 'pip install weave'")
 elseif(PY_WEAVE)
-  set(BLITZ_INCLUDES ${PY_SCIPY}/weave/blitz)
+  set(BLITZ_INCLUDES ${PY_WEAVE}/blitz)
 elseif(PY_SCIPY.WEAVE)
   set(BLITZ_INCLUDES ${PY_SCIPY.WEAVE}/blitz)
 endif()
