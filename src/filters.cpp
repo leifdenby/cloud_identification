@@ -32,9 +32,6 @@ namespace filters {
         for (int k=0; k<nz; k++) {
           if (maskext(i,j,k)) {
             d_val = labels(i,j,k);
-            //if (maskext(i,j,k)) {
-              printf("%d %d %d => %d %s\n", i, j, k, labels(i,j,k), maskext(i,j,k) ? "T" : "F");
-            //}
             n_remove(d_val) = true;
           }
         }
@@ -50,9 +47,6 @@ namespace filters {
           }
         }
       }
-    }
-    for (int m=0; m<label_max+1; m++) {
-      printf("%d: %d\n", m, n_remove(m));
     }
   }
 }

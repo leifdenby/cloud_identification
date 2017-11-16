@@ -235,15 +235,15 @@ namespace minkowski {
 
     blitz::Array<float,1> thickness(N_labels), width(N_labels), length(N_labels), genus(N_labels);
 
-    thickness = abs(V0/(2.0*V1));
-    width =  abs(2.0*V1/(3.14159*V2));
     length =  abs(3.0*V2/(4.0*V3));
+    width =  abs(2.0*V1/(3.14159*V2));
+    thickness = abs(V0/(2.0*V1));
     genus = 1.0-0.5*(n0-n1+n2-n3);
 
     blitz::Array<float,2> topological_scales = blitz::Array<float,2>(4, N_labels);
-    topological_scales(0, blitz::Range::all()) = thickness;
+    topological_scales(0, blitz::Range::all()) = length;
     topological_scales(1, blitz::Range::all()) = width;
-    topological_scales(2, blitz::Range::all()) = length;
+    topological_scales(2, blitz::Range::all()) = thickness;
     topological_scales(3, blitz::Range::all()) = genus;
 
     return topological_scales;
@@ -252,8 +252,8 @@ namespace minkowski {
   /** Compute planarity from Minkowski functionals
    */
   blitz::Array<float,1> planarity(blitz::Array<float,2> &mf) {
-    blitz::Array<float,1> thickness = mf(0, blitz::Range::all());
     blitz::Array<float,1> width = mf(1, blitz::Range::all());
+    blitz::Array<float,1> thickness = mf(2, blitz::Range::all());
 
     blitz::Array<float,1> P(thickness.size());
     P = (width - thickness)/(width + thickness);
@@ -263,8 +263,8 @@ namespace minkowski {
   /** Compute filamentarity from Minkowski functionals
    */
   blitz::Array<float,1> filamentarity(blitz::Array<float,2> &mf) {
+    blitz::Array<float,1> length = mf(0, blitz::Range::all());
     blitz::Array<float,1> width = mf(1, blitz::Range::all());
-    blitz::Array<float,1> length = mf(2, blitz::Range::all());
 
     blitz::Array<float,1> F(width.size());
     F = (length - width)/(length + width);
