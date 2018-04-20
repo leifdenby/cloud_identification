@@ -174,4 +174,4 @@ def topological_scales(labels, dx):
     length = np.abs(3.0*V2/(4.0*V3))
     genus = 1.0-0.5*(n0-n1+n2-n3)
 
-    return np.array([thickness, width, length, genus])
+    return np.array([length, width, thickness, genus])
