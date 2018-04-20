@@ -127,6 +127,29 @@ void remove_intersecting(py::array_t<indexint> labels, py::array_t<bool> mask)
 }
 
 
+void remove_intersecting_xy(py::array_t<indexint> labels, py::array_t<bool> mask)
+{
+  const size_t ndim = 3;
+
+  py::buffer_info info_labels = labels.request();
+  py::buffer_info info_mask = mask.request();
+
+  if (info_labels.ndim != ndim || info_mask.ndim != ndim-1) {
+    throw std::runtime_error("Inputs should be 3D for object labels and 2D for mask");
+  }
+
+  for (int n=0; n < info_labels.ndim-1; n++) {
+    if (info_labels.shape[n] != info_mask.shape[n]) {
+      throw std::runtime_error("Input shapes must be equal");
+    }
+  }
+
+  blitz::Array<indexint,ndim> labels_blitz = py_array_to_blitz<indexint,ndim>(labels);
+  blitz::Array<bool,ndim-1> mask_blitz = py_array_to_blitz<bool,ndim-1>(mask);
+
+  filters::remove_intersecting_xy(labels_blitz, mask_blitz);
+}
+
 
 py::array_t<int> N0(py::array_t<int> labels)
 {
@@ -234,6 +257,8 @@ PYBIND11_PLUGIN(cloud_identification)
     m.def("number_objects", &number_objects, "Identify individual cloud objects in regions defined by mask",
           py::arg("scalar_field"), py::arg("mask"));
     m.def("remove_intersecting", &remove_intersecting, "Remove all labelled objects which intersect with mask",
+          py::arg("labels"), py::arg("mask"));
+    m.def("remove_intersecting_xy", &remove_intersecting, "Remove all labelled objects which intersect with 2D xy mask",
           py::arg("labels"), py::arg("mask"));
     m.def("N0", &N0, "Find number of vertices for each labelled object");
     m.def("N1", &N1, "Find number of edges for each labelled object");
