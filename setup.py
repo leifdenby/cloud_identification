@@ -87,7 +87,7 @@ class CMakeBuild(build_ext):
 
 setup(
     name='cloud_identification',
-    version='0.1',
+    version='0.2',
     author='Leif Denby',
     author_email='l.c.denby@leeds.ac.uk',
     description='Identify cloud objects using local minima',

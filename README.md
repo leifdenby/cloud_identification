@@ -41,6 +41,13 @@ If this is available through `module` load with
 module load netcdf4
 ```
 
+which may require you to load hdf5 too
+
+```bash
+module load hdf5
+```
+
+
 **2. blitz**
 
 Which can either be provided through scipy (version <=0.18)

@@ -1,7 +1,6 @@
 #include <stdlib.h>
 #include <stdio.h>
 #include <iostream>
-#include <netcdf.h>
 #include <stdint.h>
 #include "blitz/array.h"
 
