@@ -5,31 +5,36 @@ cloud-identification algorithm
 """
 
 import numpy as np
+import xarray as xr
 import os
 import pytest
 
-lx, ly = 200, 200
-nx, ny = 200, 200
-nz = 1
-
-def create_circular_mask(x, y, x_offset=0.0):
+def create_circular_mask(grid, x_offset=0.0):
+    x, y = grid.x, grid.y
     r = np.sqrt((x - x_offset)**2. + y*y)
 
-    return r < lx/8.
+    return r < grid.lx/8.
 
 def get_grid():
+    lx, ly = 200, 200
+    nx, ny = 200, 200
+    nz = 1
+
     x_ = np.linspace(-lx/2., lx/2., nx)
     y_ = np.linspace(-ly/2., ly/2., ny)
-    x, y = np.meshgrid(x_, y_, indexing='ij')
+    ds = xr.Dataset(coords=dict(x=x_, y=y_))
+    ds.attrs['lx'] = lx
+    ds.attrs['ly'] = ly
 
-    return x, y
+    return ds
 
 class BaseTestClass(object):
     def test_one_circle_x_periodic_scalar_field(self):
-        x, y = get_grid()
+        grid = get_grid()
+        x, y = grid.x, grid.y
 
-        d = 1. - np.cos(x/10)
-        m = create_circular_mask(x, y)
+        d = 1. - np.cos(x/10) + 0.*y
+        m = create_circular_mask(grid)
 
         d_out = self.run_classifier(data=d, mask=m)
         print np.unique(d_out)
@@ -37,20 +42,22 @@ class BaseTestClass(object):
 
 
     def test_circle_domain_edge_x_periodic_scalar_field(self):
-        x, y = get_grid()
+        grid = get_grid()
+        x, y = grid.x, grid.y
 
-        d = 1. - np.cos(x/10)
-        m = create_circular_mask(x, y, x_offset=lx/2.)
+        d = 1. - np.cos(x/10) + 0.*y
+        m = create_circular_mask(grid, x_offset=grid.lx/2.)
 
         d_out = self.run_classifier(data=d, mask=m)
         assert len(np.unique(d_out)) == 2
 
 
     def test_one_circle_y_periodic_scalar_field(self):
-        x, y = get_grid()
+        grid = get_grid()
+        x, y = grid.x, grid.y
 
-        d = 1. - np.cos(y/10)
-        m = create_circular_mask(x, y)
+        d = 1. - np.cos(y/10) + 0.*x
+        m = create_circular_mask(grid)
 
         d_out = self.run_classifier(data=d, mask=m)
         assert len(np.unique(d_out)) == 3
@@ -58,22 +65,24 @@ class BaseTestClass(object):
 
     # XXX: disabled until bug is fixed for no-gradient regions
     def _test_one_circle_no_gradient_scalar_field(self):
-        x, y = get_grid()
+        grid = get_grid()
+        x, y = grid.x, grid.y
 
         d = np.ones_like(x)
-        m = create_circular_mask(x, y)
+        m = create_circular_mask(grid)
 
         d_out = self.run_classifier(data=d, mask=m)
         assert len(np.unique(d_out)) == 2
 
     # XXX: disabled until bug is fixed for no-gradient regions
     def _test_two_circles_different_scalar_values(self):
-        x, y = get_grid()
+        grid = get_grid()
+        x, y = grid.x, grid.y
 
         d = np.ones_like(x) + x > 0.0
 
-        m1 = create_circular_mask(x, y, x_offset=-lx/4.)
-        m2 = create_circular_mask(x, y, x_offset=lx/4.)
+        m1 = create_circular_mask(grid, x_offset=-grid.lx/4.)
+        m2 = create_circular_mask(grid, x_offset=grid.lx/4.)
         m = np.logical_or(m1, m2)
 
         d_out = self.run_classifier(data=d, mask=m)
@@ -82,24 +91,26 @@ class BaseTestClass(object):
 
     # XXX: disabled until bug is fixed for no-gradient regions
     def _test_two_circles_same_scalar_value(self):
-        x, y = get_grid()
+        grid = get_grid()
+        x, y = grid.x, grid.y
 
         d = np.ones_like(x) + x > 0.0
 
-        m1 = create_circular_mask(x, y, x_offset=-lx/4.)
-        m2 = create_circular_mask(x, y, x_offset=lx/4.)
+        m1 = create_circular_mask(grid, x_offset=-grid.lx/4.)
+        m2 = create_circular_mask(grid, x_offset=grid.lx/4.)
         m = np.logical_or(m1, m2)
 
         d_out = self.run_classifier(data=d, mask=m)
         assert len(np.unique(d_out)) == 3
 
     def test_two_circles_x_periodic_scalar_field(self):
-        x, y = get_grid()
+        grid = get_grid()
+        x, y = grid.x, grid.y
 
-        d = x
+        d = x + 0.*y
 
-        m1 = create_circular_mask(x, y, x_offset=-lx/4.)
-        m2 = create_circular_mask(x, y, x_offset=lx/4.)
+        m1 = create_circular_mask(grid, x_offset=-grid.lx/4.)
+        m2 = create_circular_mask(grid, x_offset=grid.lx/4.)
         m = np.logical_or(m1, m2)
 
         d_out = self.run_classifier(data=d, mask=m)
@@ -109,12 +120,13 @@ class BaseTestClass(object):
         assert num_regions == 3
 
     def test_two_circles_x_periodic_scalar_field(self):
-        x, y = get_grid()
+        grid = get_grid()
+        x, y = grid.x, grid.y
 
-        d = 1. - np.cos(x/10)
+        d = 1. - np.cos(x/10) + 0.*y
 
-        m1 = create_circular_mask(x, y, x_offset=-lx/4.)
-        m2 = create_circular_mask(x, y, x_offset=lx/4.)
+        m1 = create_circular_mask(grid, x_offset=-grid.lx/4.)
+        m2 = create_circular_mask(grid, x_offset=grid.lx/4.)
         m = np.logical_or(m1, m2)
 
         d_out = self.run_classifier(data=d, mask=m)

@@ -23,7 +23,6 @@ class TestPythonInterface(BaseTestClass):
         if len(data.shape) == 2:
             d = np.expand_dims(data, axis=-1)
             m = np.expand_dims(mask, axis=-1)
-            assert d.base is data
         else:
             d = data
             m = mask

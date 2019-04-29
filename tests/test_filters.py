@@ -8,10 +8,12 @@ import base
 import cloud_identification
 
 def _get_twocircle_dataset():
-    x, y = base.get_grid()
-    mask1 = base.create_circular_mask(x, y)
-    x_offset = base.lx/2.
-    mask2 = base.create_circular_mask(x, y, x_offset=x_offset)
+    grid = base.get_grid()
+    x, y = grid.x, grid.y
+
+    mask1 = base.create_circular_mask(grid)
+    x_offset = grid.lx/2.
+    mask2 = base.create_circular_mask(grid, x_offset=x_offset)
 
     mask = np.logical_or(mask1, mask2)
 
