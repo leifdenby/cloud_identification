@@ -107,6 +107,12 @@ which should be of the `short` datatype.
 
 #
 
+# Development
+
+Test (defined in python in `tests/`) may be run with
+
+    python setup.py test
+
 
 # Other info
 
