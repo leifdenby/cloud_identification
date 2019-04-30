@@ -62,13 +62,12 @@ class BaseTestClass(object):
         d_out = self.run_classifier(data=d, mask=m)
         assert len(np.unique(d_out)) == 3
 
-
     # XXX: disabled until bug is fixed for no-gradient regions
     def _test_one_circle_no_gradient_scalar_field(self):
         grid = get_grid()
         x, y = grid.x, grid.y
 
-        d = np.ones_like(x)
+        d = np.ones_like(x) + 0.*y
         m = create_circular_mask(grid)
 
         d_out = self.run_classifier(data=d, mask=m)
@@ -79,7 +78,7 @@ class BaseTestClass(object):
         grid = get_grid()
         x, y = grid.x, grid.y
 
-        d = np.ones_like(x) + x > 0.0
+        d = np.ones_like(x) + x > 0.0 + 0.*y
 
         m1 = create_circular_mask(grid, x_offset=-grid.lx/4.)
         m2 = create_circular_mask(grid, x_offset=grid.lx/4.)
@@ -94,13 +93,14 @@ class BaseTestClass(object):
         grid = get_grid()
         x, y = grid.x, grid.y
 
-        d = np.ones_like(x) + x > 0.0
+        d = np.ones_like(x) + x > 0.0 + 0.*y
 
         m1 = create_circular_mask(grid, x_offset=-grid.lx/4.)
         m2 = create_circular_mask(grid, x_offset=grid.lx/4.)
         m = np.logical_or(m1, m2)
 
         d_out = self.run_classifier(data=d, mask=m)
+
         assert len(np.unique(d_out)) == 3
 
     def test_two_circles_x_periodic_scalar_field(self):
@@ -123,7 +123,7 @@ class BaseTestClass(object):
         grid = get_grid()
         x, y = grid.x, grid.y
 
-        d = 1. - np.cos(x/10) + 0.*y
+        d = 1. - np.cos((x+y)/10)
 
         m1 = create_circular_mask(grid, x_offset=-grid.lx/4.)
         m2 = create_circular_mask(grid, x_offset=grid.lx/4.)
@@ -131,12 +131,7 @@ class BaseTestClass(object):
 
         d_out = self.run_classifier(data=d, mask=m)
 
-        # TODO: there's a bug here(!) the algorithm sometimes splits of regions
-        # which are only one cell which isn't a local maxima. Remove these for now
-        # to get the counts right
-        num_regions = len(filter(lambda n: n > 1, np.bincount(d_out.flatten())))
-
-        # num_regions = len(np.unique(d_out))
+        num_regions = len(np.unique(d_out))
 
         assert num_regions == 5
 

@@ -27,4 +27,7 @@ class TestPythonInterface(BaseTestClass):
             d = data
             m = mask
 
+        m = m.copy()
+        d = d.copy()
+
         return cloud_identification.number_objects(scalar_field=d, mask=m)
