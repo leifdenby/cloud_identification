@@ -2,6 +2,7 @@
 #include <stdio.h>
 #include <iostream>
 #include <stdint.h>
+#include <exception>
 #include "blitz/array.h"
 
 #include "common.h"
@@ -9,8 +10,60 @@
 #include "file_io.h"
 
 
-#define ERRCODE 2
-#define ERR(e) {printf("Error: %s\n", nc_strerror(e)); exit(ERRCODE);}
+/* Exception used when scaling if input is outside of valid range
+ */
+struct InvalidInputException : public std::exception {
+  double m_smin, m_smax;
+
+  InvalidInputException(double smin, double smax) : m_smin(smin), m_smax(smax) {
+  }
+
+  const char* what() const throw() {
+    std::string s = "Input range [" + std::to_string(m_smin) + ":"
+                    + std::to_string(m_smax) + "] is outside of expected scaling "
+                    " range [" + std::to_string(min_scalar_value) + ":"
+                    + std::to_string(max_scalar_value) + "]."
+                    " Please change `max_scalar_value` in common.h and recompile";
+
+    // need a char pointer... WTF, thank god for stack overflow (https://stackoverflow.com/a/16502000)
+    return &s[0u];
+  }
+};
+
+/* Apply scaling to short ints for optimisation. Checks bounds on input values
+ * are within expected range so overflows don't occour
+ */
+void scale_field(
+  blitz::Array<double,3> &field_input,
+  blitz::Array<short,3> &field_scaled
+) {
+  double s_min = min(field_input);
+  double s_max = max(field_input);
+
+  if (s_min < min_scalar_value || s_max > max_scalar_value) {
+    throw InvalidInputException(s_min, s_max);
+  }
+  short sign = 0;
+  blitz::TinyVector<int,3> shape = field_input.shape();
+
+  for (int i=0; i<shape[0]; i++) {
+    for (int j=0; j<shape[1]; j++) {
+      for (int k=0; k<shape[2]; k++) {
+        if (field_input(i,j,k) > 0.0) {
+          sign = 1;
+        }
+        else {
+          sign = -1;
+        }
+        field_scaled(i,j,k) = sign*(short)(scaling_parameter*std::sqrt(std::abs(field_input(i,j,k))));
+      }
+    }
+  }
+}
+
+float descale(short i) {
+  return inv_scaling_parameter*((float)(i*i)*(2.0*(float)(i>0)-1));
+}
 
 
 /** halo swap to get "inner domain values" into halos
@@ -903,12 +956,16 @@ void merge_along_cols(
       // colratio determines if clouds get merged
       // note the non-linear transformation used here
       m1=std::max(blobmaxs(targetcld1),blobmaxs(targetcld2));
-      m11=inv_scaling_parameter*(m1*m1*(2*(m1>0)-1)); 
+      //m11=inv_scaling_parameter*(m1*m1*(2*(m1>0)-1));
+      m11 = descale(m1);
       m2=std::min(blobmins(targetcld1),blobmins(targetcld2));
-      m22=inv_scaling_parameter*(m2*m2*(2*(m2>0)-1));     
+      //m22=inv_scaling_parameter*(m2*m2*(2*(m2>0)-1));
+      m22 = descale(m2);
       m3=std::min(blobmaxs(targetcld1),blobmaxs(targetcld2));
-      m33=inv_scaling_parameter*(m3*m3*(2*(m3>0)-1)); 
-      col=inv_scaling_parameter*(coldata(i,0)*coldata(i,0))*(2*(coldata(i,0)>0)-1);
+      //m33=inv_scaling_parameter*(m3*m3*(2*(m3>0)-1));
+      m33 = descale(m3);
+      //col=inv_scaling_parameter*(coldata(i,0)*coldata(i,0))*(2*(coldata(i,0)>0)-1);
+      col = descale(coldata(i,0));
       colratio=(m33-col)/(m33-m22); // (lowest peak-col)/(lowest peak-lowest point)
 
       // first mergers determined here

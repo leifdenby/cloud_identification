@@ -1,11 +1,19 @@
 #include <stdint.h>
+#include <math.h>
 
 #ifndef CLOUD_IDENTIFICATION_COMMON_H
 #define CLOUD_IDENTIFICATION_COMMON_H 1
 
-// PROPERTIES OF INPUT
-static const float inv_scaling_parameter=1.0/3200.0; // data conversion parameter
-                                                       // corresponding to scaling in pre-processing script
+// when scaling and casting to short ints we want to keep the same resolution
+// for all input so we define the effective resolution here
+static const float max_scalar_value=1000.;
+static const float min_scalar_value=-max_scalar_value;
+
+// when scaling we transform the data by taking the square root, so that's
+// needed for the scaling too
+static const float scaling_parameter=((float)SHRT_MAX)/sqrt(max_scalar_value);
+static const float inv_scaling_parameter=1.0/scaling_parameter;
+
 static const bool lperiodic = true; // is the domain periodic?
 
 // PARAMETERS FOR CLUSTERING ALGORITHM

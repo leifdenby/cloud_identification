@@ -2,6 +2,7 @@
 #include <pybind11/numpy.h>
 #include <blitz/array.h>
 #include <limits.h>
+#include <cmath>
 
 #include "cloud_identification.h"
 #include "minkowski.h"
@@ -51,7 +52,6 @@ py::array_t<T> blitz_array_to_py(blitz::Array<T,N> &a) {
   return result;
 }
 
-
 py::array_t<indexint> number_objects(py::array_t<double> scalar_field, py::array_t<bool> mask)
 {
   const size_t ndim = 3;
@@ -83,25 +83,41 @@ py::array_t<indexint> number_objects(py::array_t<double> scalar_field, py::array
   blitz::Array<bool,ndim> mask_blitz = py_array_to_blitz<bool,ndim>(mask);
   blitz::Array<indexint,ndim> result_blitz = py_array_to_blitz<indexint,ndim>(result);
 
-  double s_min = min(scalar_field_blitz);
-  double s_max = max(scalar_field_blitz);
-  double s_range = s_max - s_min;
-  double ds = s_range/double(SHRT_MAX - SHRT_MIN);
   blitz::TinyVector<int,ndim> shape = scalar_field_blitz.shape();
-
   blitz::Array<short,ndim> rescaled_scalar_field_blitz = blitz::Array<short,ndim>(scalar_field_blitz.shape());
-  for (int i=0; i<shape[0]; i++) {
-    for (int j=0; j<shape[1]; j++) {
-      for (int k=0; k<shape[2]; k++) {
-        rescaled_scalar_field_blitz(i,j,k) = SHRT_MIN + (short)((scalar_field_blitz(i,j,k) - s_min)/ds);
-      }
-    }
-  }
+
+  scale_field(scalar_field_blitz, rescaled_scalar_field_blitz);
 
   find_objects(rescaled_scalar_field_blitz, mask_blitz, result_blitz);
 
   return result;
 }
+
+
+py::array_t<short> apply_scaling(py::array_t<double> scalar_field)
+{
+  const size_t ndim = 3;
+
+  py::buffer_info info_scalar_field = scalar_field.request();
+
+  py::array_t<short> result = py::array(py::buffer_info(
+    nullptr,            /* Pointer to data (nullptr -> ask NumPy to allocate!) */
+    sizeof(indexint),     /* Size of one item */
+    info_scalar_field.format, /* Buffer format */
+    info_scalar_field.ndim,          /* How many dimensions? */
+    info_scalar_field.shape,  /* Number of elements for each dimension */
+    info_scalar_field.strides  /* Strides for each dimension */
+  ));
+
+  blitz::Array<double,ndim> scalar_field_blitz = py_array_to_blitz<double,ndim>(scalar_field);
+  blitz::Array<short,ndim> result_blitz = py_array_to_blitz<short,ndim>(result);
+
+  scale_field(scalar_field_blitz, result_blitz);
+
+  return result;
+}
+
+
 
 void remove_intersecting(py::array_t<indexint> labels, py::array_t<bool> mask)
 {
@@ -256,6 +272,8 @@ PYBIND11_PLUGIN(cloud_identification)
     py::module m("cloud_identification");
     m.def("number_objects", &number_objects, "Identify individual cloud objects in regions defined by mask",
           py::arg("scalar_field"), py::arg("mask"));
+    m.def("apply_scaling", &apply_scaling, "Apply scaling which is used internally when number objects",
+          py::arg("scalar_field"));
     m.def("remove_intersecting", &remove_intersecting, "Remove all labelled objects which intersect with mask",
           py::arg("labels"), py::arg("mask"));
     m.def("remove_intersecting_xy", &remove_intersecting, "Remove all labelled objects which intersect with 2D xy mask",

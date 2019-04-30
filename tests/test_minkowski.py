@@ -323,6 +323,8 @@ def test_cylinder_filamentarity_and_planarity():
     mask_lg_disc, s_lg_disc = make_cylinder_object(r0=600., l0=50., dx=dx)
 
     def get_filamentarity_and_planarity(mask, s):
+        # we have to rescale the scalar so that's within in valid range for the numbering algorithm
+        s /= s.max()
         labels = cloud_identification.number_objects(mask=mask, scalar_field=s)
         mf = cloud_identification.topological_scales(labels, dx=dx)
         filamentarity = cloud_identification.filamentarity(mf=mf)
