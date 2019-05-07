@@ -9,15 +9,17 @@ import xarray as xr
 import os
 import pytest
 
-def create_circular_mask(grid, x_offset=0.0):
+from scipy.constants import pi
+
+def create_circular_mask(grid, x_offset=0.0, r_fraction=1./8.):
     x, y = grid.x, grid.y
     r = np.sqrt((x - x_offset)**2. + y*y)
 
-    return r < grid.lx/8.
+    return r < grid.lx*r_fraction
 
-def get_grid():
+def get_grid(N=200):
     lx, ly = 200, 200
-    nx, ny = 200, 200
+    nx, ny = N, N
     nz = 1
 
     x_ = np.linspace(-lx/2., lx/2., nx)
@@ -134,6 +136,29 @@ class BaseTestClass(object):
         num_regions = len(np.unique(d_out))
 
         assert num_regions == 5
+
+    def test_colfraction_effect_on_splitting(self):
+        grid = get_grid()
+        x, y = grid.x, grid.y
+
+        col_factor = 0.01
+
+        d = 1.0 - np.cos(x*pi/grid.lx)*col_factor + 0.*y
+
+        r_fraction = 0.2
+        m1 = create_circular_mask(grid, x_offset=-grid.lx/8., r_fraction=r_fraction)
+        m2 = create_circular_mask(grid, x_offset=grid.lx/8., r_fraction=r_fraction)
+        m = np.logical_or(m1, m2)
+
+        d_out = self.run_classifier(data=d, mask=m)
+
+        labels = xr.DataArray(d_out[...,0], dims=m.dims)
+        labels.plot.imshow(size=6, cmap=discrete_cmap(len(np.unique(labels)), 'cubehelix'))
+        plt.gca().set_aspect(1)
+
+        num_regions = len(np.unique(d_out))
+
+        assert num_regions == 3
 
     def run_classifier(data, mask):
         raise NotImplementedError

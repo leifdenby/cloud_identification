@@ -959,19 +959,20 @@ void merge_along_cols(
       // colratio determines if clouds get merged
       // note the non-linear transformation used here
       m1=std::max(blobmaxs(targetcld1),blobmaxs(targetcld2));
-      //m11=inv_scaling_parameter*(m1*m1*(2*(m1>0)-1));
+      //m11=inv_scaling_parameter*(m1*m1*(2*(m1>0)-1)); 
       m11 = descale(m1);
       m2=std::min(blobmins(targetcld1),blobmins(targetcld2));
-      //m22=inv_scaling_parameter*(m2*m2*(2*(m2>0)-1));
+      //m22=inv_scaling_parameter*(m2*m2*(2*(m2>0)-1));     
       m22 = descale(m2);
       m3=std::min(blobmaxs(targetcld1),blobmaxs(targetcld2));
-      //m33=inv_scaling_parameter*(m3*m3*(2*(m3>0)-1));
+      //m33=inv_scaling_parameter*(m3*m3*(2*(m3>0)-1)); 
       m33 = descale(m3);
       //col=inv_scaling_parameter*(coldata(i,0)*coldata(i,0))*(2*(coldata(i,0)>0)-1);
       col = descale(coldata(i,0));
       colratio=(m33-col)/(m33-m22); // (lowest peak-col)/(lowest peak-lowest point)
 
       // first mergers determined here
+
       if (colratio<=mincolratio) {
         if(blobmaxs(targetcld1)<blobmaxs(targetcld2)) { // merge into higher peak
           targetcld1=targetcld(cld1);

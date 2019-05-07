@@ -25,8 +25,8 @@ static const float mincolratio = 0.7; // fractional height used for deciding whe
 // PARAMETERS WHICH DETERMINE MEMORY FOOTPRINT
 // By what factor far can we make arrays smaller? (reduce memory footprint)
 static const int blobfac = 2; // number of blobs wrt number of points
-static const int borderfac = 2; // number of border points wrt number of points
-static const int colfac = 2; // number of cols wrt number of points
+static const int borderfac = 1; // number of border points wrt number of points
+static const int colfac = 1; // number of cols wrt number of points
 
 typedef uint32_t indexint; //use unsigned array indices
 
