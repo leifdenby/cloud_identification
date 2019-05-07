@@ -34,7 +34,7 @@ def test_intersection_filter_no_overlap():
     d, m = _get_twocircle_dataset()
 
     labels = cloud_identification.number_objects(d, m)
-    print labels[0:2,:,0]
+    print(labels[0:2,:,0])
     assert len(np.unique(labels)) == 3
 
     mask_overlap = np.zeros_like(m).astype(bool)
@@ -49,7 +49,7 @@ def test_intersection_filter_complete_overlap():
     d, m = _get_twocircle_dataset()
 
     labels = cloud_identification.number_objects(d, m)
-    print labels[0:2,:,0]
+    print(labels[0:2,:,0])
     assert len(np.unique(labels)) == 3
 
     mask_overlap = np.ones_like(m).astype(bool)

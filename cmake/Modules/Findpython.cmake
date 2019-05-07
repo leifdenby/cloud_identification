@@ -23,7 +23,7 @@ find_program(PYTHON_EXEC "python${Python_FIND_VERSION}"
 string(REGEX REPLACE "/bin/python${Python_FIND_VERSION}$" "" PYTHON_PREFIX
         "${PYTHON_EXEC}")
 execute_process(COMMAND "${PYTHON_EXEC}" "-c"
-        "import sys; print '%d.%d' % (sys.version_info[0],sys.version_info[1])"
+        "import sys; print('%d.%d' % (sys.version_info[0],sys.version_info[1]))"
         OUTPUT_VARIABLE PYTHON_VERSION
         OUTPUT_STRIP_TRAILING_WHITESPACE)
 find_library(PYTHON_LIBRARIES "python${PYTHON_VERSION}" PATHS "${PYTHON_PREFIX}" 
@@ -33,7 +33,7 @@ find_path(PYTHON_INCLUDE_DIRS "Python.h"
         PATHS "${PYTHON_PREFIX}/include/python${PYTHON_VERSION}"
         DOC "Python include directories" NO_DEFAULT_PATH)
 execute_process(COMMAND "${PYTHON_EXEC}" "-c" 
-        "from distutils.sysconfig import get_python_lib; print get_python_lib()"
+        "from distutils.sysconfig import get_python_lib; print(get_python_lib())"
         OUTPUT_VARIABLE PYTHON_SITE_MODULES
         OUTPUT_STRIP_TRAILING_WHITESPACE)
 
@@ -48,12 +48,12 @@ function(find_python_module module)
                 # A module's location is usually a directory, but for binary modules
                 # it's a .so file.
                 execute_process(COMMAND "${PYTHON_EXEC}" "-c" 
-                        "import re, ${module}; print re.compile('/__init__.py.*').sub('',${module}.__file__)"
+                        "import re, ${module}; print(re.compile('/__init__.py.*').sub('',${module}.__file__))"
                         RESULT_VARIABLE _${module}_status 
                         OUTPUT_VARIABLE _${module}_location
                         ERROR_QUIET OUTPUT_STRIP_TRAILING_WHITESPACE)
                 execute_process(COMMAND "${PYTHON_EXEC}" "-c" 
-                        "import re, ${module}; print ${module}.__version__"
+                        "import re, ${module}; print(${module}.__version__)"
                         OUTPUT_VARIABLE _${module}_version
                         ERROR_QUIET OUTPUT_STRIP_TRAILING_WHITESPACE)
                 if(NOT _${module}_status)

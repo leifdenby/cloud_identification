@@ -1,6 +1,7 @@
 cmake_minimum_required(VERSION 2.8.3)
 project(cloud_identification)
 
+
 # the version of cmake on cloud9@leeds doesn't include instructions for
 # finding netcdf, so we include it here
 set(CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} "${CMAKE_SOURCE_DIR}/cmake/Modules/")
@@ -19,25 +20,15 @@ endif()
 set(CMAKE_CXX_FLAGS_DEBUG "${CMAKE_CXX_FLAGS_DEBUG} -g -DDEBUG_CHECK_LIMITS -Wall")
 set(CMAKE_CXX_FLAGS_RELEASE "${CMAKE_CXX_FLAGS_RELEASE} -DNDEBUG")
 
+set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++11")
+
 set (NETCDF_CXX "YES")
 set (NETCDF_C "YES")
 set (NETCDF_NC4 "YES")
 FIND_PACKAGE(NetCDF)
 
 find_package(python)
-find_python_module(weave)
-find_python_module(scipy.weave)
-
-if(NOT (PY_WEAVE OR PY_SCIPY.WEAVE))
-  message(FATAL_ERROR "Couldn't find python module `weave` (which is
-  required to provide `blitz`). Since scipy v0.19 weave is no longer
-  included with scipy. Please install with 'pip install weave'")
-elseif(PY_WEAVE)
-  set(BLITZ_INCLUDES ${PY_WEAVE}/blitz)
-elseif(PY_SCIPY.WEAVE)
-  set(BLITZ_INCLUDES ${PY_SCIPY.WEAVE}/blitz)
-endif()
-
+set(BLITZ_INCLUDES "lib/weave/weave/blitz")
 set(SOURCE_DIR "src")
 
 

@@ -37,7 +37,7 @@ class BaseTestClass(object):
         m = create_circular_mask(grid)
 
         d_out = self.run_classifier(data=d, mask=m)
-        print np.unique(d_out)
+        print(np.unique(d_out))
         assert len(np.unique(d_out)) == 3
 
 

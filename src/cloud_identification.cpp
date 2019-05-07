@@ -3,6 +3,9 @@
 #include <iostream>
 #include <stdint.h>
 #include <exception>
+#include <stdexcept>
+#include <sstream>
+#include <string>
 #include "blitz/array.h"
 
 #include "common.h"

@@ -1,4 +1,4 @@
-import StringIO
+import io
 import warnings
 
 import numpy as np
@@ -7,7 +7,7 @@ import minkowski
 import cloud_identification
 
 def parse_data_str(s, shape):
-    return np.loadtxt(StringIO.StringIO(s)).reshape(*shape).astype(int)
+    return np.loadtxt(io.StringIO(s)).reshape(*shape).astype(int)
 
 FUNCS = "N3 N2 N1 N0"
 
@@ -15,10 +15,10 @@ def _assert_equal_floats(v1, v2):
     assert v1.dtype == v2.dtype
     eps = np.finfo(v1.dtype).eps
     max_error = 1000*eps
-    print eps, max_error
-    print v1 - v2
-    print v1
-    print v2
+    print(eps, max_error)
+    print(v1 - v2)
+    print(v1)
+    print(v2)
     if np.max(np.abs(v1 - v2) < max_error) > 100*eps:
         warnings.warn("Larger than 100 epsilon descrepancy between c++ and python result, should investigate")
     assert np.all(np.abs(v1 - v2) < max_error)
@@ -358,5 +358,5 @@ if __name__ == "__main__":
     labels = cloud_identification.number_objects(mask=mask, scalar_field=r)
     scales_cpp = cloud_identification.topological_scales(labels, dx=dx)
 
-    print lr
-    print scales_cpp
+    print(lr)
+    print(scales_cpp)
