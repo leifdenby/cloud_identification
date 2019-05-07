@@ -381,6 +381,7 @@ void identify_borders(
     int bf0,bf1,bf00; // borderfield temporary variable
     int nrb0,nrb1,nrb; // nuber of borders temporary variables
     int si0,si1; // start index temporary variables
+    int nstep;
     indexint nrfieldtemp0,nrfieldtemp1; // cloud number temporary variables
                                         // in first loop
     indexint af0,af1; // associated fields temporary variables
@@ -391,6 +392,15 @@ void identify_borders(
     // first numbering of borders on the inner domain
     // si1 keeps track of the total number of border cells in the domain
     for (int i=1; i<imax-1; ++i) {
+      nstep = si1+jmax*kmax;
+
+            if (nstep >= borderfield.size()) {
+              throw std::runtime_error(""
+                "Error: `borderfield` array too small ("
+                + std::to_string(nstep) + " >= "
+                + std::to_string(borderfield.size())
+                + "), decrease `borderfac` to increase size");
+            }
     for (int j=1; j<jmax-1; ++j) {
     for (int k=0; k<kmax; ++k) {
       nrfieldtemp0=dataext(i,j,k);
@@ -456,13 +466,6 @@ void identify_borders(
         nrborders(i,j,k)=nrb;
         // add the number of borders of this cell to the start index
         si1=si1+nrb;
-
-#ifdef DEBUG_CHECK_LIMITS
-            if (si1+6 >= borderfield.size()) {
-              printf("Error: `borderfield` array too small, decrease `borderfac` to increase size\n");
-              exit(-1);
-            }
-#endif
       }
     }
     }
@@ -1110,8 +1113,11 @@ void merge_smaller_peaks(
 #ifdef DEBUG_CHECK_LIMITS
     for (int l=0; l<borderindex; ++l) {                
       if (borderfield(l) >= colmax) {
-        printf("Error: `colmax` array too small, decrease `colfac` to increase size\n");
-        exit(-1);
+        
+        throw std::runtime_error("Error: `colmax` array too small "
+                                 + std::to_string(borderfield(l))
+                                 + " >= " + std::to_string(colmax) + 
+                                 "), decrease `colfac` to increase size");
       }
     }
 #endif
