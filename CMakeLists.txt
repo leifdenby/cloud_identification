@@ -45,7 +45,7 @@ endif()
 
 # put all cloud identification code in library so that we link against this
 # both for cli and for python module
-add_library(cloud_identification_core
+set(SOURCES
   src/filters.cpp
   src/minkowski.cpp
   src/cloud_identification.cpp
@@ -57,8 +57,8 @@ if(NETCDF_HAS_c++4)
   target_link_libraries(cloud_identification_core ${NETCDF_LIBRARIES})
 
   add_executable(main 
+    ${SOURCES}
     src/main.cpp)
-  target_link_libraries(main cloud_identification_core)
 else()
   message(STATUS "netcdf-c++ library wasn't found, skipping compilation of CLI `main`")
 endif()
@@ -66,8 +66,8 @@ endif()
 add_subdirectory(lib/pybind11)
 pybind11_add_module(cloud_identification
   ${SOURCE_DIR}/bindings.cpp
+  ${SOURCES}
 )
-target_link_libraries(cloud_identification cloud_identification_core)
 
 
 # For debugging cmake variables:
