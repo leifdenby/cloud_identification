@@ -10,3 +10,8 @@ dist/
 libcloud_identification_core.dylib
 
 __pycache__/
+
+.ipynb_checkpoints/
+.gdb-color-pipe
+.gdb_history
+.pytest_cache/
