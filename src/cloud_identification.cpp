@@ -760,6 +760,8 @@ void identify_borders(
         si1=startindex(i,j,k);
         for (int l=0; l<nrb; ++l) {      
           if(borderfield(si1+l)>0) {
+            // using borderfield(si1+l) achieves indexing into the same (first)
+            // element for each border
             ltarget=borderfield(si1+l);
             borderfield(si1+l)=borderfield(ltarget);
           }
@@ -790,6 +792,12 @@ void identify_borders(
     startindex.free();
 }
 
+/* Identify the col between any two bordering objects. The interface between two
+ * objects actually consists of two borders. For each of we first identify the
+ * highest point and the col for a given interface will then be the lowest of
+ * these two points for a given interface.
+ *
+ */
 void find_cols_on_borders(
     const blitz::Array<short,3> &fieldext,
     const blitz::Array<indexint,3> &dataext,
@@ -890,10 +898,16 @@ void find_cols_on_borders(
       }
     }
     
-    // SORT COLDATA BY FIRST COLUMN
-    quick_sort(coldata, 1, borderfield_counter-2);
+    // sort coldata by first column, i.e. sorting by col height which is the
+    // first column in coldata
+    quick_sort(coldata, 0, borderfield_counter-2);
 }
 
+
+/* Deside which objects to merge
+ *
+ *
+ */
 void merge_along_cols(
   const blitz::Array<short,3> &fieldext,
   blitz::Array<indexint,3> &dataext,
@@ -947,9 +961,12 @@ void merge_along_cols(
     int m1,m2,m3;
     float m11,m22,m33,col,colratio;
     
+    // reverse indexing so that we get the highest col first which is the last
+    // element after quicksort
     for (int i=borderfield_counter-1; i>=1; --i) {
       cld1=coldata(i,2);
       cld2=coldata(i,3);
+
       targetcld1=targetcld(cld1);
       while(targetcld1!=targetcld(targetcld1)) {
         targetcld1=targetcld(targetcld1);
@@ -975,6 +992,9 @@ void merge_along_cols(
       colratio=(m33-col)/(m33-m22); // (lowest peak-col)/(lowest peak-lowest point)
 
       // first mergers determined here
+      // two merged clouds may will have a overall minimum that is the lowest
+      // of the two merged clouds, and so the minimum value of the merge object
+      // must be updated (as this is used in the col comparison)
       if (colratio<=mincolratio) {
         if(blobmaxs(targetcld1)<blobmaxs(targetcld2)) { // merge into higher peak
           targetcld1=targetcld(cld1);
@@ -1002,6 +1022,9 @@ void merge_along_cols(
         }
       }
     }
+
+    // ensure that previously merge cols are updated to point to the same
+    // parent object
 
     // update all remaining targets
     // successive merges

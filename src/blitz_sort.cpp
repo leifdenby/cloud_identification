@@ -2,13 +2,12 @@
 
 
 // partitioning for the quicksort algorithm
-int partition(blitz::Array<int, 2> &a, int p, int r) {
+int partition(blitz::Array<int, 2> &a, int i, int r) {
   int j, temp;
   
   int x = a(r,0);
-  int i = p -1;
-  
-  for(j = p;j<r;j++){
+
+  for(j = i+1;j<r;j++){
     if(a(j,0)<= x)
     {
       i++;
