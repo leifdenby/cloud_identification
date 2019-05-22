@@ -73,6 +73,14 @@ with
 module load gnu/4.8.1
 ```
 
+Finally `pybind11` and `weave` are added as git submodules and must be fetched
+from github:
+
+```bash
+git submodule init
+git submodule update
+```
+
 Once these are set up you are ready to compile.
 
 For the command line interface simply compile with cmake:
