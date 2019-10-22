@@ -74,3 +74,30 @@ def test_intersection_filter_edge_overlap():
 
     cloud_identification.remove_intersecting(labels, mask_overlap)
     assert len(np.unique(labels)) == 2
+
+
+def test_intersection_filter_no_overlap():
+    """
+    Check that labels are correctly removed when only aiming to keep one object
+    """
+    d, m = _get_twocircle_dataset()
+
+    labels = cloud_identification.number_objects(d, m)
+    assert len(np.unique(labels)) == 3
+
+    idxs_keep = np.unique(labels)
+    cloud_identification.filter_labels(labels, idxs_keep)
+    assert len(np.unique(labels)) == 3
+
+    idxs_keep = np.unique(labels)
+    idxs_keep = idxs_keep[idxs_keep != 0]
+    cloud_identification.filter_labels(labels, idxs_keep)
+    # label == 0 is "outside object" so the number of unique labels should be
+    # unchanged
+    assert len(np.unique(labels)) == 3
+
+    idxs_keep = np.unique(labels)
+    idxs_keep = idxs_keep[idxs_keep != 1]
+    cloud_identification.filter_labels(labels, idxs_keep)
+    # now we should have one label (2) and environment
+    assert np.array_equal(np.unique(labels), [0, 2])

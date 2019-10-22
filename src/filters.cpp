@@ -96,4 +96,48 @@ namespace filters {
       }
     }
   }
+
+  /*
+   * Remove all objects (identified by non-zero integers in `labels`) which
+   * aren't in the `keep`
+   *
+   * OBS: updates `labels` in-place to reduce memory footprint
+   */
+  void filter_labels(
+    blitz::Array<indexint,3> &labels,
+    blitz::Array<indexint,1> &keep
+  ) {
+    int label_max = max(labels);
+    blitz::TinyVector<int,3> shape = labels.shape();
+
+    int nx = shape[0];
+    int ny = shape[1];
+    int nz = shape[2];
+
+    int n_to_keep = keep.size();
+
+    int d_val = -1;
+
+    bool should_keep = false;
+
+    for (int i=0; i<nx; i++) {
+      for (int j=0; j<ny; j++) {
+        for (int k=0; k<nz; k++) {
+          d_val = labels(i,j,k);
+          should_keep = false;
+
+          for (int n=0; n<n_to_keep; n++) {
+            if (d_val == keep(n)) {
+              should_keep = true;
+              break;
+            }
+          }
+
+          if (!should_keep) {
+            labels(i,j,k) = 0;
+          }
+        }
+      }
+    }
+  }
 }

@@ -143,6 +143,28 @@ void remove_intersecting(py::array_t<indexint> labels, py::array_t<bool> mask)
 }
 
 
+void filter_labels(py::array_t<indexint> labels, py::array_t<indexint> idxs_keep)
+{
+  const size_t ndim = 3;
+
+  py::buffer_info info_labels = labels.request();
+  py::buffer_info info_idxs_keep = idxs_keep.request();
+
+  if (info_labels.ndim != ndim) {
+    throw std::runtime_error("Labels should be 3D");
+  }
+
+  if (info_idxs_keep.ndim != 1) {
+    throw std::runtime_error("Labels to keep should be 1D");
+  }
+
+  blitz::Array<indexint,ndim> labels_blitz = py_array_to_blitz<indexint,ndim>(labels);
+  blitz::Array<indexint,1> idxs_keep_blitz = py_array_to_blitz<indexint,1>(idxs_keep);
+
+  filters::filter_labels(labels_blitz, idxs_keep_blitz);
+}
+
+
 void remove_intersecting_xy(py::array_t<indexint> labels, py::array_t<bool> mask)
 {
   const size_t ndim = 3;
@@ -278,6 +300,8 @@ PYBIND11_PLUGIN(cloud_identification)
           py::arg("labels"), py::arg("mask"));
     m.def("remove_intersecting_xy", &remove_intersecting, "Remove all labelled objects which intersect with 2D xy mask",
           py::arg("labels"), py::arg("mask"));
+    m.def("filter_labels", &filter_labels, "Remove labelled objects which aren't in list of indexes",
+          py::arg("labels"), py::arg("idxs_keep"));
     m.def("N0", &N0, "Find number of vertices for each labelled object");
     m.def("N1", &N1, "Find number of edges for each labelled object");
     m.def("N2", &N2, "Find number of faces for each labelled object");
