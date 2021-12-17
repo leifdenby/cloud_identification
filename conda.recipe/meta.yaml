@@ -26,6 +26,8 @@ requirements:
 test:
   requires:
     - pytest
+    - numpy
+    - scipy
   imports:
     - cloud_identification
   commands:
