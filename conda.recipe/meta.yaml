@@ -1,0 +1,46 @@
+{% set name = "cloud_identification" %}
+{% set version = "0.3.0" %}
+
+package:
+  name: {{ name|lower }}
+  version: {{ version }}
+
+source:
+  path: ..
+
+build:
+  number: 0
+  script: "{{ PYTHON }} -m pip install . -vv"
+
+requirements:
+  host:
+    - python >=3.5
+    - pip
+  build:
+    - cmake
+    - make
+    - {{ compiler('cxx') }}
+  run:
+    - python >=3.5
+
+test:
+  requires:
+    - pytest
+  imports:
+    - cloud_identification
+  commands:
+    - python -m pytest
+
+about:
+  home: https://github.com/leifdenby/cloud_identification
+  license: BSD
+  license_file: LICENSE
+  summary: 'A Python library to identify and measure 3D cloud objects'
+  description: |
+        A Python library to determine if something is a number.
+  doc_url: https://github.com/leifdenby/cloud_identification
+  dev_url: https://github.com/leifdenby/cloud_identification
+
+extra:
+  recipe-maintainers:
+    - leifdenby
