@@ -30,6 +30,8 @@ test:
     - cloud_identification
   commands:
     - python -m pytest
+  source_files:
+    - tests
 
 about:
   home: https://github.com/leifdenby/cloud_identification
