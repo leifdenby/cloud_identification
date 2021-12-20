@@ -14,14 +14,15 @@ build:
 
 requirements:
   host:
-    - python >=3.5
+    - python
     - pip
   build:
-    - cmake
-    - make
     - {{ compiler('cxx') }}
+    - cmake
+    - ninja
+    - make
   run:
-    - python >=3.5
+    - python
 
 test:
   requires:
