@@ -124,7 +124,7 @@ setup(
     version='0.3.0',
     author='Leif Denby',
     author_email='l.c.denby@leeds.ac.uk',
-    description='Identify cloud objects using local minima',
+    description='Identify and characterise 3D loud objects',
     long_description='',
     ext_modules=[CMakeExtension("cloud_identification")],
     cmdclass={"build_ext": CMakeBuild},

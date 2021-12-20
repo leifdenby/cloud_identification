@@ -38,10 +38,13 @@ jobs:
         run: conda install conda-build conda-verify pytest
 
       - name: Build
-        run: conda build conda.recipe -c conda-forge --python ${{ matrix.python-version }}
+        run: conda build conda.recipe -c conda-forge
 
       - name: Install
         run: conda install -c ${CONDA_PREFIX}/conda-bld/ cloud_identification
+
+      - name: Install test requirements
+        run: python -m pip install numpy scipy netcdf4 xarray
 
       - name: Test
         run: python -m pytest
