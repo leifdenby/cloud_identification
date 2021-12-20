@@ -47,4 +47,4 @@ jobs:
         run: python -m pip install numpy scipy netcdf4 xarray
 
       - name: Test
-        run: python -m pytest
+        run: python -m pytest --ignore=lib/  # don't include tests for pybind11 which is in lib/

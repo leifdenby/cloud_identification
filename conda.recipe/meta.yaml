@@ -14,15 +14,14 @@ build:
 
 requirements:
   host:
-    - python
+    - python>=3.6
     - pip
   build:
-    - {{ compiler('cxx') }}
     - cmake
-    - ninja
     - make
+    - {{ compiler('cxx') }}
   run:
-    - python
+    - python>=3.6
 
 test:
   requires:
@@ -34,7 +33,7 @@ test:
   imports:
     - cloud_identification
   commands:
-    - python -m pytest
+    - python -m pytest --ignore=lib/ # don't include tests for pybind11 which is in lib/
   source_files:
     - tests
 
