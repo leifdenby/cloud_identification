@@ -44,4 +44,4 @@ jobs:
         run: conda install -c ${CONDA_PREFIX}/conda-bld/ cloud_identification
 
       - name: Test
-        run: python -m pytest
+        run: python -m pytest --ignore=lib/  # don't include tests for pybind11 which is in lib/
