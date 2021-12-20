@@ -26,6 +26,10 @@ requirements:
 test:
   requires:
     - pytest
+    - numpy
+    - scipy
+    - xarray
+    - netcdf4
   imports:
     - cloud_identification
   commands:
