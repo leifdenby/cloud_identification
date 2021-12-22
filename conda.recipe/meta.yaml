@@ -14,14 +14,14 @@ build:
 
 requirements:
   host:
-    - python>=3.6
+    - python
     - pip
   build:
     - cmake
     - make
     - {{ compiler('cxx') }}
   run:
-    - python>=3.6
+    - python
 
 test:
   requires:
