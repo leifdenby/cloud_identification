@@ -124,7 +124,7 @@ setup(
     version='0.3.0',
     author='Leif Denby',
     author_email='l.c.denby@leeds.ac.uk',
-    description='Identify and characterise 3D loud objects',
+    description='Identify and characterise 3D cloud objects',
     long_description='',
     ext_modules=[CMakeExtension("cloud_identification")],
     cmdclass={"build_ext": CMakeBuild},
